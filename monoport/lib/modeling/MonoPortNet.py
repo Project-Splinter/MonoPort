@@ -40,8 +40,8 @@ class MonoPortNet(nn.Module):
         feats_stages = self.image_filter(images)
         if feat_prior is not None: # for netC
             feats_stages = [
-                (torch.cat([feat_prior, feat_per_lvl], dim=1) for feat_per_lvl in feats)
-                for feats in feats_stages]
+                [torch.cat([feat_prior, feat_per_lvl], dim=1) 
+                for feat_per_lvl in feats] for feats in feats_stages]
         return feats_stages
 
     def query(self, feats_stages, points, calibs=None, transforms=None):
