@@ -205,3 +205,4 @@ def PIFuNetC():
     opt_net.loss.IMF = 'L1'
 
     return MonoPortNet(opt_net)
+

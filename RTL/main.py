@@ -74,14 +74,15 @@ netG.load_legacy_pifu(cfg.netG.ckpt_path)
 netG.image_filter = netG.image_filter.to(cuda_backbone_G)
 netG.surface_classifier = netG.surface_classifier.to(cuda_recon)
 
-print (f'loading networkC from {cfg.netC.ckpt_path} ...')
-netC = MonoPortNet(cfg.netC)
-assert os.path.exists(cfg.netC.ckpt_path), 'we need a ckpt to run RTL demo.'
-netC.load_legacy_pifu(cfg.netC.ckpt_path)
+if os.path.exists(cfg.netC.ckpt_path):
+    print (f'loading networkC from {cfg.netC.ckpt_path} ...')
+    netC = MonoPortNet(cfg.netC)
+    netC.load_legacy_pifu(cfg.netC.ckpt_path)
 
-netC.image_filter = netC.image_filter.to(cuda_backbone_C)
-netC.surface_classifier = netC.surface_classifier.to(cuda_color)
-
+    netC.image_filter = netC.image_filter.to(cuda_backbone_C)
+    netC.surface_classifier = netC.surface_classifier.to(cuda_color)
+else:
+    print (f'we are not loading netC ...')
 
 
 ########################################
@@ -89,17 +90,19 @@ netC.surface_classifier = netC.surface_classifier.to(cuda_color)
 ########################################
 print (f'initialize data streamer ...')
 if args.camera:
-    data_stream = streamer.CaptureStreamer()
+    data_stream = streamer.CaptureStreamer(
+        mean=cfg.netG.mean, std=cfg.netG.std)
 elif len(args.videos) > 0:
     data_stream = streamer.VideoListStreamer(
-        args.videos * (10 if args.loop else 1))
+        args.videos * (10 if args.loop else 1),
+        mean=cfg.netG.mean, std=cfg.netG.std)
 elif len(args.images) > 0:
     data_stream = streamer.ImageListStreamer(
-        args.images * (10000 if args.loop else 1))
+        args.images * (10000 if args.loop else 1),
+        mean=cfg.netG.mean, std=cfg.netG.std)
 elif args.image_folder is not None:
     images = sorted(glob.glob(args.image_folder+'/*.jpg'))
     images += sorted(glob.glob(args.image_folder+'/*.png'))
     data_stream = streamer.ImageListStreamer(
-       images * (10 if args.loop else 1))
-
-
+        images * (10 if args.loop else 1),
+        mean=cfg.netG.mean, std=cfg.netG.std)

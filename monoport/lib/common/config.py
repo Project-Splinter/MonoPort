@@ -27,6 +27,8 @@ _C.freq_vis = 100
 
 # --- netG options ---
 _C.netG = CN()
+_C.netG.mean = (0.5, 0.5, 0.5)
+_C.netG.std = (0.5, 0.5, 0.5)
 _C.netG.ckpt_path = ''
 _C.netG.projection = 'orthogonal' 
 
@@ -51,6 +53,8 @@ _C.netG.loss.IMF = 'MSE'
 
 # --- netC options ---
 _C.netC = CN()
+_C.netC.mean = (0.5, 0.5, 0.5)
+_C.netC.std = (0.5, 0.5, 0.5)
 _C.netC.ckpt_path = ''
 _C.netC.projection = 'orthogonal' 
 
