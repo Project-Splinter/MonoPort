@@ -412,7 +412,8 @@ class Yolov4(nn.Module):
         x20, x13, x6 = self.neek(d5, d4, d3)
 
         out = self.head(x20, x13, x6)
-        return [(out[2],), (out[1],), (out[0],)]
+        # return [(out[2],), (out[1],), (out[0],)]
+        return [(out[0],), (out[1],), (out[2],)]
 
 
 def Yolov4Filters(*args, **kwargs):
@@ -436,6 +437,6 @@ if __name__ == '__main__':
             for lvl, output_lvl in enumerate(output_stage):
                 print (f'stage: {stage}, lvl: {lvl}', output_lvl.shape)
 
-    with torch.no_grad(): # 23.27 fps
+    with torch.no_grad(): # 33.99 fps
         for _ in tqdm.tqdm(range(1000)):
             outputs = model(input)

@@ -23,13 +23,15 @@ class PPLDynamicDataset():
                  mean=(0.5, 0.5, 0.5), 
                  std=(0.5, 0.5, 0.5), 
                  training=True, 
+                 split='train',
                  shared_dict=None):
         self.root = '/home/rui/local/projects/MonoPortDataset/data/'
         self.root_render = '/media/linux_data/data/pifu_orth_v1/'
         self.cfg = cfg
         self.mean = mean
         self.std = std
-        self.training = training
+        self.training = training if split == 'train' else False
+        self.split = split
         self.shared_dict = shared_dict
         self.rotations = range(0, 360, 1)
         self.motion_list = self.get_motion_list()
@@ -67,7 +69,7 @@ class PPLDynamicDataset():
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
-            image, mask = utils.load_image(
+            image, mask = load_image(
                 image_path, None,
                 mean=self.mean, 
                 std=self.std)
@@ -85,6 +87,7 @@ class PPLDynamicDataset():
             'image': image,
             'mask': mask,
             'calib': calib,
+            'mesh_path': self.get_mesh_path(motion),
         }
 
         # sampling
@@ -113,7 +116,7 @@ class PPLDynamicDataset():
             else:
                 train_motions.append([subject, action, frame])
 
-        if self.training:
+        if self.split == 'train':
             return train_motions
         else:
             return val_motions

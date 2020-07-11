@@ -45,12 +45,14 @@ class PPLStaticDataset():
                  mean=(0.5, 0.5, 0.5), 
                  std=(0.5, 0.5, 0.5), 
                  training=True, 
+                 split='train',
                  shared_dict=None):
         self.root = '/home/rui/local/projects/release/PIFu/data/static/'
         self.cfg = cfg
         self.mean = mean
         self.std = std
-        self.training = training
+        self.training = training if split == 'train' else False
+        self.split = split
         self.shared_dict = shared_dict
         self.rotations = range(0, 360, 1)
         self.motion_list = self.get_motion_list()
@@ -88,7 +90,7 @@ class PPLStaticDataset():
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
-            image, mask = utils.load_image(
+            image, mask = load_image(
                 image_path, mask_path,
                 mean=self.mean, 
                 std=self.std)
@@ -106,6 +108,7 @@ class PPLStaticDataset():
             'image': image,
             'mask': mask,
             'calib': calib,
+            'mesh_path': self.get_mesh_path(motion),
         }
 
         # sampling
@@ -123,7 +126,7 @@ class PPLStaticDataset():
         val_subjects = np.loadtxt(os.path.join(self.root, 'val.txt'), dtype=str)
         if len(val_subjects) == 0:
             return sorted(all_subjects)
-        if self.training:
+        if self.split == 'train':
             return sorted(list(set(all_subjects) - set(val_subjects)))
         else:
             return sorted(list(val_subjects))    
