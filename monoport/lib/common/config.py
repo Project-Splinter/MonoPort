@@ -5,8 +5,8 @@ _C = CN()
 
 # needed by trainer
 _C.name = 'default'
-_C.checkpoints_path = '../data/checkpoints/'
-_C.results_path = '../data/results/'
+_C.checkpoints_path = './data/checkpoints/'
+_C.results_path = './data/results/'
 _C.learning_rate = 1e-3
 _C.weight_decay = 0.0
 _C.momentum = 0.0

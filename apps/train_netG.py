@@ -21,12 +21,8 @@ sys.path.insert(0, '../')
 from monoport.lib.common.trainer import Trainer
 from monoport.lib.common.config import get_cfg_defaults
 from monoport.lib.modeling.MonoPortNet import MonoPortNet
-
-# from lib.dataset.PPLDataset import StaticPPLDataset, collect_fn, DynamicPPLDatasetV2
-# from lib.dataset.visualize import vtk_trainval_geo
-
-# from lib.modeling.RTNet import RTNetG
-# from test_net import TestEngine
+from monoport.lib.dataset.ppl_dynamic import PPLDynamicDataset
+from monoport.lib.dataset.ppl_static import PPLStaticDataset
 
 ########################################
 ## load configs
@@ -35,7 +31,11 @@ parser = argparse.ArgumentParser()
 parser.add_argument(
     '-cfg', '--config_file', default=None, type=str, 
     help='path of the yaml config file')
-
+parser.add_argument(
+    '-d', '--dataset', default='static', type=str, 
+    choices=['static', 'dynamic'],
+    help='on which dataset to do training')
+    
 argv = sys.argv[1:sys.argv.index('--')]
 args = parser.parse_args(argv)
 opts = sys.argv[sys.argv.index('--') + 1:]
@@ -49,7 +49,7 @@ cfg.freeze()
 
 def train(device='cuda'):
     # setup net 
-    net = MonoPortNet(cfg.netG)
+    net = MonoPortNet(cfg.netG).to(device)
 
     # setup trainer
     trainer = Trainer(net, cfg, use_tb=True)
@@ -66,11 +66,25 @@ def train(device='cuda'):
     # set dataset
     manager = mp.Manager()
     shared_dict = manager.dict()
-    train_dataset = DynamicPPLDatasetV2(
-        cfg.dataset, training=True, shared_dict=shared_dict)
-    
+    if args.dataset == 'static':
+        train_dataset = PPLStaticDataset(
+            cfg.dataset, 
+            mean=cfg.netG.mean, 
+            std=cfg.netG.std,
+            training=True,
+            split='train')
+    elif args.dataset == 'dynamic':
+        train_dataset = PPLDynamicDataset(
+            cfg.dataset, 
+            mean=cfg.netG.mean, 
+            std=cfg.netG.std,
+            training=True,
+            split='train')
+    else:
+        raise NotImplementedError
+
     train_data_loader = torch.utils.data.DataLoader(
-        train_dataset, collate_fn=collect_fn,
+        train_dataset,
         batch_size=cfg.batch_size, shuffle=True,
         num_workers=cfg.num_threads, pin_memory=False, drop_last=True)
     trainer.logger.info(

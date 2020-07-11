@@ -83,9 +83,8 @@ class PPLDynamicDataset():
         # center_proj = projection(center.reshape(1, 3), calib).reshape(3,)
         # calib[2, 3] -= center_proj[2]
 
-        verts = load_obj_verts(mesh_path)
-        verts_proj = projection(verts, calib)
-        center_proj = np.median(verts_proj, axis=0)
+        center = np.loadtxt(self.get_center_path(motion)).reshape(1, 3)
+        center_proj = projection(center, calib).reshape(3,)
         calib[2, 3] -= center_proj[2]
         # scale = 1.8 / (
         #     verts_proj.max(axis=0)[0] - verts_proj.min(axis=0)[0])[1]
@@ -181,6 +180,8 @@ class PPLDynamicDataset():
                 continue
             if not os.path.exists(self.get_skeleton_path(motion)):
                 continue
+            if not os.path.exists(self.get_center_path(motion)):
+                continue
             skel_path = self.get_skeleton_path(motion)
             skel = np.loadtxt(skel_path, usecols=[1, 2, 3]) / 100
             if skel[6, 1] < skel[1, 1]: # y(head) < y(hip)
@@ -223,6 +224,12 @@ class PPLDynamicDataset():
         return os.path.join(
             self.root_render, subject, action, f'{frame:06d}', 
             'skeleton.txt')
+    
+    def get_center_path(self, motion):
+        subject, action, frame = motion
+        return os.path.join(
+            self.root_render, subject, action, f'{frame:06d}', 
+            'center.txt')
     
     def get_sample_path(self, motion):
         subject, action, frame = motion

@@ -214,7 +214,11 @@ if __name__ == '__main__':
     print (f'loading networkG from {cfg.netG.ckpt_path} ...')
     netG = MonoPortNet(cfg.netG)
     assert os.path.exists(cfg.netG.ckpt_path), 'we need a ckpt to run eval.'
-    netG.load_legacy_pifu(cfg.netG.ckpt_path)
+    if 'checkpoints' in cfg.netG.ckpt_path:
+        ckpt = torch.load(cfg.netG.ckpt_path, map_location="cpu")
+        netG.load_state_dict(ckpt['net'])
+    else:
+        netG.load_legacy_pifu(cfg.netG.ckpt_path)
 
     netG = netG.to(device)
     netG.eval()
