@@ -4,6 +4,7 @@ import glob
 import torch
 import random
 import tqdm
+import tinyobjloader
 
 from .utils import load_image, projection
 
@@ -15,6 +16,23 @@ def load_calib(calib_path, render_size=512):
     calib_mat = np.matmul(intrinsic, extrinsic)
     calib = torch.from_numpy(calib_mat)
     return calib
+
+
+def load_obj_verts(mesh_path):
+    # Create reader.
+    reader = tinyobjloader.ObjReader()
+
+    # Load .obj(and .mtl) using default configuration
+    ret = reader.ParseFromFile(mesh_path)
+
+    if ret == False:
+        print("Failed to load : ", mesh_path)
+        return None
+
+    # note here for wavefront obj, #v might not equal to #vt, same as #vn.
+    attrib = reader.GetAttrib()
+    verts = np.array(attrib.vertices).reshape(-1, 3)
+    return verts
 
 
 class PPLDynamicDataset():
@@ -57,10 +75,30 @@ class PPLDynamicDataset():
         calib_path = self.get_calib_path(motion, rotation)
         calib = load_calib(calib_path)
 
+        # align
+        mesh_path = self.get_mesh_path(motion)
+        
+        # skel_path = self.get_skeleton_path(motion)
+        # center = np.loadtxt(skel_path, usecols=[1, 2, 3])[1, :] / 100
+        # center_proj = projection(center.reshape(1, 3), calib).reshape(3,)
+        # calib[2, 3] -= center_proj[2]
+
+        verts = load_obj_verts(mesh_path)
+        verts_proj = projection(verts, calib)
+        center_proj = np.median(verts_proj, axis=0)
+        calib[2, 3] -= center_proj[2]
+        # scale = 1.8 / (
+        #     verts_proj.max(axis=0)[0] - verts_proj.min(axis=0)[0])[1]
+        
+        # load image
         image_path = self.get_image_path(motion, rotation)
         if self.training:
+            scale = random.uniform(0.9, 1.1)
+            calib[0:3] *= scale
             image, mask = load_image(
                 image_path, None,
+                crop_size=int(512/scale), 
+                input_size=512, 
                 mean=self.mean, 
                 std=self.std,
                 blur=self.cfg.blur,
@@ -69,8 +107,12 @@ class PPLDynamicDataset():
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
+            scale = 1.0
+            calib[0:3] *= scale
             image, mask = load_image(
                 image_path, None,
+                crop_size=int(512/scale), 
+                input_size=512, 
                 mean=self.mean, 
                 std=self.std)
 
@@ -87,7 +129,7 @@ class PPLDynamicDataset():
             'image': image,
             'mask': mask,
             'calib': calib,
-            'mesh_path': self.get_mesh_path(motion),
+            'mesh_path': mesh_path,
         }
 
         # sampling

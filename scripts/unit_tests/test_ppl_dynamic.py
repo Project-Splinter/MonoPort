@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 import torchvision
+import trimesh
+import vtkplotter as vtk
 from monoport.lib.common.config import get_cfg_defaults
 from monoport.lib.dataset.ppl_dynamic import PPLDynamicDataset
 from monoport.lib.dataset.utils import projection
@@ -46,3 +48,23 @@ if __name__ == '__main__':
     torchvision.utils.save_image(
         images, './data/test_ppl_dynamic.jpg', 
         nrow=nrow, normalize=True, padding=10)
+
+    # sampled points
+    vtk_list = []
+    samples = data['samples_geo'].numpy()
+    calib = data['calib'].numpy()
+    labels = data['labels_geo'].numpy()
+    samples = projection(samples, calib)
+    colors = np.stack([labels, labels>0.5, labels<0.5], axis=1)
+    vtk_samples = vtk.Points(samples, r=12, c=np.float32(colors))
+    vtk_list.append(vtk_samples)
+
+    # mesh
+    mesh = trimesh.load(data['mesh_path'])
+    verts = projection(mesh.vertices, calib)
+    vtk_mesh = trimesh.Trimesh(verts, mesh.faces)
+    vtk_mesh.visual.face_colors = [200, 200, 250, 255]
+    vtk_list.append(vtk_mesh)
+    
+    vtk.show(*vtk_list, interactive=True)
+    vtk.clear()
