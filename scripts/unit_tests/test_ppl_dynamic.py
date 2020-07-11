@@ -2,12 +2,12 @@ import numpy as np
 import torch
 import torchvision
 from monoport.lib.common.config import get_cfg_defaults
-from monoport.lib.dataset.ppl_static import PPLStaticDataset
+from monoport.lib.dataset.ppl_dynamic import PPLDynamicDataset
 from monoport.lib.dataset.utils import projection
 
 if __name__ == '__main__':
     cfg = get_cfg_defaults()
-    dataset = PPLStaticDataset(
+    dataset = PPLDynamicDataset(
         cfg.dataset, 
         mean=cfg.netG.mean, 
         std=cfg.netG.std,
@@ -44,5 +44,5 @@ if __name__ == '__main__':
 
     # save
     torchvision.utils.save_image(
-        images, './data/test_ppl_static.jpg', 
+        images, './data/test_ppl_dynamic.jpg', 
         nrow=nrow, normalize=True, padding=10)

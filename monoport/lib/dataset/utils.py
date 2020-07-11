@@ -7,6 +7,10 @@ import torch.nn.functional as F
 import torchvision.transforms as transforms
 
 
+def projection(points, calib):
+    return np.matmul(calib[:3, :3], points.T).T + calib[:3, 3]
+
+
 def load_image(
     image_path, mask_path=None, 
     crop_size=512, input_size=512, 

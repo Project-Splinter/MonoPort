@@ -72,23 +72,26 @@ class PPLStaticDataset():
         rotation = self.rotations[rid]
         motion = self.motion_list[mid]
 
+        calib_path = self.get_calib_path(motion, rotation)
+        calib = load_calib(calib_path)
+
         image_path = self.get_image_path(motion, rotation)
         mask_path = self.get_mask_path(motion, rotation)
         if self.training:
             image, mask = load_image(
-                image_path, mask_path, 
-                mean=(0.5, 0.5, 0.5), 
-                std=(0.5, 0.5, 0.5),
+                image_path, mask_path,
+                mean=self.mean, 
+                std=self.std,
                 blur=self.cfg.blur,
                 brightness=self.cfg.aug_bri, 
                 contrast=self.cfg.aug_con, 
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
-            image, mask = utils.load_image(image_path, mask_path)
-
-        calib_path = self.get_calib_path(motion, rotation)
-        calib = load_calib(calib_path)
+            image, mask = utils.load_image(
+                image_path, mask_path,
+                mean=self.mean, 
+                std=self.std)
 
         # left-right flip aug
         if self.training and random.random() < 0.5:
@@ -145,5 +148,5 @@ class PPLStaticDataset():
         cache = torch.load(random.choice(cache_files))
         samples = cache["samples"].float()
         labels = cache["labels"].float()
-        return samples, labels
+        return samples.transpose(1, 0), labels[0]
 

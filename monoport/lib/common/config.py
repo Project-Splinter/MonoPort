@@ -79,9 +79,9 @@ _C.netC.loss.IMF = 'L1'
 
 # --- dataset options ---
 _C.dataset = CN()
-_C.dataset.aug_bri = 0.5
-_C.dataset.aug_con = 0.5
-_C.dataset.aug_sat = 0.5
+_C.dataset.aug_bri = 0.4
+_C.dataset.aug_con = 0.4
+_C.dataset.aug_sat = 0.4
 _C.dataset.aug_hue = 0.0
 _C.dataset.blur = 1.0
 _C.dataset.num_sample_geo = 5000
