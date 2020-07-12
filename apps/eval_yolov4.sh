@@ -1,6 +1,6 @@
 python apps/eval_netG.py \
-    --split "train" \
-    --dataset "dynamic" \
+    --split "val" \
+    --dataset "static" \
     -- \
     netG.mean "(0.0, 0.0, 0.0)" \
     netG.std "(1.0, 1.0, 1.0)" \

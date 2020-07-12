@@ -11,7 +11,7 @@ _C.learning_rate = 1e-3
 _C.weight_decay = 0.0
 _C.momentum = 0.0
 _C.optim = 'RMSprop'
-_C.schedule = [40, 60]
+_C.schedule = [15, 20]
 _C.gamma = 0.1
 _C.resume = False 
 
@@ -89,6 +89,7 @@ _C.dataset.num_sample_color = 0
 _C.dataset.sigma_geo = 0.05
 _C.dataset.sigma_color = 0.001
 _C.dataset.pre_load = False
+_C.dataset.align_hip = False
 
 
 def get_cfg_defaults():

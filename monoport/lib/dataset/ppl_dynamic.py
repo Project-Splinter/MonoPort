@@ -75,19 +75,16 @@ class PPLDynamicDataset():
         calib_path = self.get_calib_path(motion, rotation)
         calib = load_calib(calib_path)
 
-        # align
-        mesh_path = self.get_mesh_path(motion)
-        
-        # skel_path = self.get_skeleton_path(motion)
-        # center = np.loadtxt(skel_path, usecols=[1, 2, 3])[1, :] / 100
-        # center_proj = projection(center.reshape(1, 3), calib).reshape(3,)
-        # calib[2, 3] -= center_proj[2]
-
-        center = np.loadtxt(self.get_center_path(motion)).reshape(1, 3)
-        center_proj = projection(center, calib).reshape(3,)
-        calib[2, 3] -= center_proj[2]
-        # scale = 1.8 / (
-        #     verts_proj.max(axis=0)[0] - verts_proj.min(axis=0)[0])[1]
+        # align        
+        if self.cfg.align_hip:
+            skel_path = self.get_skeleton_path(motion)
+            center = np.loadtxt(skel_path, usecols=[1, 2, 3])[1, :] / 100
+            center_proj = projection(center.reshape(1, 3), calib).reshape(3,)
+            calib[2, 3] -= center_proj[2]
+        else:
+            center = np.loadtxt(self.get_center_path(motion)).reshape(1, 3)
+            center_proj = projection(center, calib).reshape(3,)
+            calib[2, 3] -= center_proj[2]
         
         # load image
         image_path = self.get_image_path(motion, rotation)
@@ -106,12 +103,8 @@ class PPLDynamicDataset():
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
-            scale = 1.0
-            calib[0:3] *= scale
             image, mask = load_image(
                 image_path, None,
-                crop_size=int(512/scale), 
-                input_size=512, 
                 mean=self.mean, 
                 std=self.std)
 
@@ -128,7 +121,7 @@ class PPLDynamicDataset():
             'image': image,
             'mask': mask,
             'calib': calib,
-            'mesh_path': mesh_path,
+            'mesh_path': self.get_mesh_path(motion),
         }
 
         # sampling
@@ -240,13 +233,14 @@ class PPLDynamicDataset():
     def get_sampling_geo(self, motion):
         num_sample = self.cfg.num_sample_geo
         samples_path = self.get_sample_path(motion)
-        samples_surface = np.load(random.choice(glob.glob(
-            os.path.join(samples_path, 'surface_*.npy'))))
+
+        samples_surface = np.load(
+            os.path.join(samples_path, f'surface_{random.randint(0, 99)}.npy'))
         samples_surface = samples_surface[np.random.choice(
             samples_surface.shape[0], 4 * num_sample, replace=False)]
 
-        samples_uniform = np.load(random.choice(glob.glob(
-            os.path.join(samples_path, 'uniform_*.npy'))))
+        samples_uniform = np.load(
+            os.path.join(samples_path, f'uniform_{random.randint(0, 99)}.npy'))
         samples_uniform = samples_uniform[np.random.choice(
             samples_uniform.shape[0], num_sample // 4, replace=False)]
 

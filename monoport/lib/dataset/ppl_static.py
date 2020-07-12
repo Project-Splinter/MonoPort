@@ -80,8 +80,12 @@ class PPLStaticDataset():
         image_path = self.get_image_path(motion, rotation)
         mask_path = self.get_mask_path(motion, rotation)
         if self.training:
+            scale = random.uniform(0.9, 1.1)
+            calib[0:3] *= scale
             image, mask = load_image(
                 image_path, mask_path,
+                crop_size=int(512/scale), 
+                input_size=512, 
                 mean=self.mean, 
                 std=self.std,
                 blur=self.cfg.blur,
