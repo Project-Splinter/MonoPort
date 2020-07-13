@@ -109,16 +109,18 @@ class PPLStaticDataset():
         data_dict = {
             'motion': str(motion),
             'rotation': rotation,
-            'image': image,
-            'mask': mask,
-            'calib': calib,
+            'image': image.float(),
+            'mask': mask.float(),
+            'calib': calib.float(),
             'mesh_path': self.get_mesh_path(motion),
         }
 
         # sampling
         if self.cfg.num_sample_geo:
             samples_geo, labels_geo = self.get_sampling_geo(motion)
-            data_dict.update({'samples_geo': samples_geo, 'labels_geo': labels_geo})
+            data_dict.update({
+                'samples_geo': samples_geo.float(), 
+                'labels_geo': labels_geo.float()})
         
         if self.cfg.num_sample_color:
             raise NotImplementedError

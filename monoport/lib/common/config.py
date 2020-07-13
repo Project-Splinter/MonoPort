@@ -90,7 +90,7 @@ _C.dataset.sigma_geo = 0.05
 _C.dataset.sigma_color = 0.001
 _C.dataset.pre_load = False
 _C.dataset.align_hip = False
-
+_C.dataset.score_filter = 0.0
 
 def get_cfg_defaults():
   """Get a yacs CfgNode object with default values for my_project."""

@@ -118,16 +118,18 @@ class PPLDynamicDataset():
         data_dict = {
             'motion': str(motion),
             'rotation': rotation,
-            'image': image,
-            'mask': mask,
-            'calib': calib,
+            'image': image.float(),
+            'mask': mask.float(),
+            'calib': calib.float(),
             'mesh_path': self.get_mesh_path(motion),
         }
 
         # sampling
         if self.cfg.num_sample_geo:
             samples_geo, labels_geo = self.get_sampling_geo(motion)
-            data_dict.update({'samples_geo': samples_geo, 'labels_geo': labels_geo})
+            data_dict.update({
+                'samples_geo': samples_geo.float(), 
+                'labels_geo': labels_geo.float()})
         
         if self.cfg.num_sample_color:
             raise NotImplementedError
@@ -139,16 +141,27 @@ class PPLDynamicDataset():
         val_motions = []
         val_subjects = np.loadtxt(os.path.join(self.root, 'renderppl', 'val.txt'), dtype=str)
 
-        # scan all motions
-        paths = sorted(glob.glob(os.path.join(self.root_render, '*/*/*/render')))
-        train_motions = []
-        for path in paths:
-            splits = path.split('/')
-            subject, action, frame = [splits[-4], splits[-3], int(splits[-2])]
-            if subject in val_subjects:
-                val_motions.append([subject, action, frame])
-            else:
-                train_motions.append([subject, action, frame])
+        if self.cfg.score_filter > 0:
+            tags = np.loadtxt(
+                './data/dynamic_chamfer.txt', dtype=str, usecols=[0, 1, 2]
+                )[::4]
+            scores = np.loadtxt(
+                './data/dynamic_chamfer.txt', dtype=float, usecols=[4]
+                ).reshape(-1, 4).mean(axis=1)
+            tags = tags[scores < self.cfg.score_filter]
+            train_motions = [
+                [subject, action, int(frame)] for (subject, action, frame) in tags]
+        else:
+            # scan all motions
+            paths = sorted(glob.glob(os.path.join(self.root_render, '*/*/*/render')))
+            train_motions = []
+            for path in paths:
+                splits = path.split('/')
+                subject, action, frame = [splits[-4], splits[-3], int(splits[-2])]
+                if subject in val_subjects:
+                    val_motions.append([subject, action, frame])
+                else:
+                    train_motions.append([subject, action, frame])
 
         if self.split == 'train':
             return train_motions

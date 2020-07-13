@@ -9,6 +9,7 @@ from monoport.lib.dataset.utils import projection
 
 if __name__ == '__main__':
     cfg = get_cfg_defaults()
+    cfg.dataset.score_filter = 0.020
     dataset = PPLDynamicDataset(
         cfg.dataset, 
         mean=cfg.netG.mean, 

@@ -33,7 +33,7 @@ parser.add_argument(
     help='path of the yaml config file')
 parser.add_argument(
     '-d', '--dataset', default='static', type=str, 
-    choices=['static', 'dynamic'],
+    choices=['static', 'dynamic', 'concat'],
     help='on which dataset to do training')
     
 argv = sys.argv[1:sys.argv.index('--')]
@@ -80,6 +80,21 @@ def train(device='cuda'):
             std=cfg.netG.std,
             training=True,
             split='train')
+    elif args.dataset == 'concat':
+        train_dataset = torch.utils.data.ConcatDataset([
+            PPLStaticDataset(
+                cfg.dataset, 
+                mean=cfg.netG.mean, 
+                std=cfg.netG.std,
+                training=True,
+                split='train'),
+            PPLDynamicDataset(
+                cfg.dataset, 
+                mean=cfg.netG.mean, 
+                std=cfg.netG.std,
+                training=True,
+                split='train'),
+            ])
     else:
         raise NotImplementedError
 

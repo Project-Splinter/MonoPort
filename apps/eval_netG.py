@@ -1,4 +1,5 @@
 import logging
+import ast
 import torch
 import torch.nn.functional as F
 import trimesh
@@ -151,6 +152,7 @@ class Evaluator():
         chamfer_list = []
         p2s_list = []
         pbar = tqdm.tqdm(data_loader)
+        # f = open('./data/dynamic_chamfer.txt', 'w')
         for data in pbar:
             image_tensor = data['image'].to(self.device).float()
             calib_tensor = data['calib'].to(self.device).float()
@@ -164,7 +166,10 @@ class Evaluator():
             pbar.set_description(
                 f'chamfer: {chamfer:.3f}({chamfer_avg:.3f}) '+
                 f'p2s: {p2s:.3f}({p2s_avg:.3f})')
-
+            
+        #     subject, action, frame = ast.literal_eval(data['motion'][0])
+        #     f.write(f"{subject} {action} {frame} {data['rotation'][0]} {chamfer}\n")
+        # f.close()
         return chamfer_avg, p2s_avg
 
 
@@ -250,6 +255,7 @@ if __name__ == '__main__':
     
     dataset.motion_list = dataset.motion_list[:10]
     dataset.rotations = dataset.rotations[::30]
+    # dataset.rotations = dataset.rotations[::90]
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=1, shuffle=False, num_workers=1, pin_memory=True)
     print(
