@@ -85,11 +85,17 @@ class PPLDynamicDataset():
             center = np.loadtxt(self.get_center_path(motion)).reshape(1, 3)
             center_proj = projection(center, calib).reshape(3,)
             calib[2, 3] -= center_proj[2]
-        
+
+        # scale to uniform size
+        if self.cfg.scale_uniform:
+            scale_base = 1.8 / np.loadtxt(self.get_scale_path(motion))[1]
+        else:
+            scale_base = 1
+
         # load image
         image_path = self.get_image_path(motion, rotation)
         if self.training:
-            scale = random.uniform(0.9, 1.1)
+            scale = random.uniform(0.9, 1.1) * scale_base
             calib[0:3] *= scale
             image, mask = load_image(
                 image_path, None,
@@ -103,8 +109,12 @@ class PPLDynamicDataset():
                 saturation=self.cfg.aug_sat, 
                 hue=self.cfg.aug_hue)
         else:
+            scale = scale_base
+            calib[0:3] *= scale
             image, mask = load_image(
                 image_path, None,
+                crop_size=int(512/scale), 
+                input_size=512, 
                 mean=self.mean, 
                 std=self.std)
 
@@ -236,6 +246,12 @@ class PPLDynamicDataset():
         return os.path.join(
             self.root_render, subject, action, f'{frame:06d}', 
             'center.txt')
+    
+    def get_scale_path(self, motion):
+        subject, action, frame = motion
+        return os.path.join(
+            self.root_render, subject, action, f'{frame:06d}', 
+            'scale.txt')
     
     def get_sample_path(self, motion):
         subject, action, frame = motion

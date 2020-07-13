@@ -1,7 +1,7 @@
 import torch
 import numpy as np
 
-
+@torch.no_grad()
 def pifu_calib(extrinsic, intrinsic, device="cuda:0"):
     pifu_matrix = np.array([
         [1.0, 0.0, 0.0, 0.0],
@@ -24,7 +24,7 @@ def pifu_calib(extrinsic, intrinsic, device="cuda:0"):
     calib_tensor = calib_tensor.to(device)
     return calib_tensor
 
-
+@torch.no_grad()
 def forward_vertices(sdf, direction="front"):
     '''
         - direction: "front" | "back" | "left" | "right"

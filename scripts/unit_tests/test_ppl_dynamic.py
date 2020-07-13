@@ -10,11 +10,12 @@ from monoport.lib.dataset.utils import projection
 if __name__ == '__main__':
     cfg = get_cfg_defaults()
     cfg.dataset.score_filter = 0.020
+    cfg.dataset.scale_uniform = True
     dataset = PPLDynamicDataset(
         cfg.dataset, 
         mean=cfg.netG.mean, 
         std=cfg.netG.std,
-        training=True)
+        training=False)
 
     data = dataset[0]
     for k, v in data.items():

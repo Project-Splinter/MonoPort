@@ -6,7 +6,7 @@ import os
 import tqdm
 import vtkplotter as vtk
 from monoport.lib.common.config import get_cfg_defaults
-from monoport.lib.dataset.ppl_dynamic import PPLDynamicDataset, load_obj_verts
+from monoport.lib.dataset.ppl_dynamic import PPLDynamicDataset, load_obj_verts, load_calib
 from monoport.lib.dataset.utils import projection
 
 if __name__ == '__main__':
@@ -25,3 +25,11 @@ if __name__ == '__main__':
         np.savetxt(
             os.path.join(os.path.dirname(mesh_path), 'center.txt'), 
             center)
+
+        calib_path = dataset.get_calib_path(motion, rotation=90)
+        calib = load_calib(calib_path)
+        verts_proj = projection(verts, calib)
+        scale = verts_proj.max(axis=0)[0] - verts_proj.min(axis=0)[0]
+        np.savetxt(
+            os.path.join(os.path.dirname(mesh_path), 'scale.txt'), 
+            scale)
