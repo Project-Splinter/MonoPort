@@ -430,6 +430,7 @@ if __name__ == '__main__':
     device = 'cuda:0'
     input = torch.randn(1, 3, 512, 512).to(device)
     model = Yolov4Filters().to(device)
+    model.eval()
 
     with torch.no_grad():
         outputs = model(input)
@@ -437,6 +438,6 @@ if __name__ == '__main__':
             for lvl, output_lvl in enumerate(output_stage):
                 print (f'stage: {stage}, lvl: {lvl}', output_lvl.shape)
 
-    with torch.no_grad(): # 33.99 fps
+    with torch.no_grad(): # 52.77 fps
         for _ in tqdm.tqdm(range(1000)):
             outputs = model(input)

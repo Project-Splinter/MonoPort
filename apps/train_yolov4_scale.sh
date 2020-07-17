@@ -10,4 +10,5 @@ python apps/train_netG.py \
     netG.mean "(0.0, 0.0, 0.0)" \
     netG.std "(1.0, 1.0, 1.0)" \
     netG.backbone.IMF "Yolov4Filters" \
-    netG.ckpt_path "./data/Yolov4/netG_epoch_latest"
+    netG.ckpt_path "./data/checkpoints/Yolov4_scale/ckpt_1.pth" \
+    resume True

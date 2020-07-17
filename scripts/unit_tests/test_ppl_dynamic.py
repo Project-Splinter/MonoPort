@@ -44,6 +44,27 @@ if __name__ == '__main__':
             if l > 0.5:
                 image[:, int(y), int(x)] = 1
         images.append(image)
+
+        # sampled points
+        vtk_list = []
+        samples = data['samples_geo'].numpy()
+        calib = data['calib'].numpy()
+        labels = data['labels_geo'].numpy()
+        samples = projection(samples, calib)
+        colors = np.stack([labels, labels>0.5, labels<0.5], axis=1)
+        vtk_samples = vtk.Points(samples, r=12, c=np.float32(colors))
+        vtk_list.append(vtk_samples)
+
+        # mesh
+        mesh = trimesh.load(data['mesh_path'])
+        verts = projection(mesh.vertices, calib)
+        vtk_mesh = trimesh.Trimesh(verts, mesh.faces)
+        vtk_mesh.visual.face_colors = [200, 200, 250, 255]
+        vtk_list.append(vtk_mesh)
+        
+        vtk.show(*vtk_list, interactive=True)
+        vtk.clear()
+        
     images = torch.stack(images)
 
     # save
@@ -51,22 +72,4 @@ if __name__ == '__main__':
         images, './data/test_ppl_dynamic.jpg', 
         nrow=nrow, normalize=True, padding=10)
 
-    # sampled points
-    vtk_list = []
-    samples = data['samples_geo'].numpy()
-    calib = data['calib'].numpy()
-    labels = data['labels_geo'].numpy()
-    samples = projection(samples, calib)
-    colors = np.stack([labels, labels>0.5, labels<0.5], axis=1)
-    vtk_samples = vtk.Points(samples, r=12, c=np.float32(colors))
-    vtk_list.append(vtk_samples)
-
-    # mesh
-    mesh = trimesh.load(data['mesh_path'])
-    verts = projection(mesh.vertices, calib)
-    vtk_mesh = trimesh.Trimesh(verts, mesh.faces)
-    vtk_mesh.visual.face_colors = [200, 200, 250, 255]
-    vtk_list.append(vtk_mesh)
     
-    vtk.show(*vtk_list, interactive=True)
-    vtk.clear()
