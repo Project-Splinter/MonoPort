@@ -126,7 +126,8 @@ elif args.image_folder is not None:
 ########################################
 ## human segmentation model
 ########################################
-seg_engine = human_inst_seg.Segmentation(device=cuda_backbone_G)
+seg_engine = human_inst_seg.Segmentation(
+    device=cuda_backbone_G, verbose=False)
 seg_engine.eval()
 
 
@@ -139,7 +140,7 @@ scene = MonoPortScene(size=(256, 256))
 ########################################
 ## variables for hierachy occupancy reconstruction
 ########################################
-calib_tensor = torch.eye(4).unsqueeze(0).to('cuda:0')
+calib_tensor = torch.eye(4).unsqueeze(0).to(cuda_recon)
 @torch.no_grad()
 def query_func(points, im_feat_list, calib_tensor):
     '''
@@ -166,7 +167,7 @@ reconEngine = Seg3dLossless(
     b_max=b_max.unsqueeze(0).numpy(),
     resolutions=resolutions,
     balance_value=0.5,
-    use_cuda_impl=False,
+    use_cuda_impl=True,
     faster=True).to(cuda_recon)
 
 
@@ -186,6 +187,7 @@ mat_color = mat.to(cuda_color)
 
 @torch.no_grad()
 def colorization(netC, feat_tensor_C, X, Y, Z, calib_tensor, norm=None):
+    device = calib_tensor.device
     global canvas
     # use normal as color
     if norm is not None:
@@ -197,6 +199,8 @@ def colorization(netC, feat_tensor_C, X, Y, Z, calib_tensor, norm=None):
 
     # use netC to predict color
     else:            
+        feat_tensor_C = [
+            [feat.to(device) for feat in feats] for feats in feat_tensor_C]
         verts = torch.stack([
             X.float(), Y.float(), resolutions[-1]-Z.float() # TODO
         ], dim=1)
@@ -252,6 +256,7 @@ def visulization(render_norm, render_tex=None):
 ########################################
 mean = torch.tensor(cfg.netG.mean).to(cuda_backbone_G).view(1, 3, 1, 1)
 std = torch.tensor(cfg.netG.std).to(cuda_backbone_G).view(1, 3, 1, 1)
+scaled_boxes = [torch.Tensor([[ 50.0,  0.0, 450.0, 500.0]]).to(cuda_backbone_G)]
 
 processors=[
     lambda data: {"input": data.to(cuda_backbone_G, non_blocking=True)},
@@ -271,12 +276,12 @@ processors=[
             data_dict["extrinsic"], data_dict["intrinsic"], "cuda:0")
         },  
     
-    # instance segmentation
+    # instance segmentation:
     lambda data_dict: {
         **data_dict, 
         **dict(zip(
             ["segm", "bboxes", "probs"], 
-            seg_engine(data_dict["input"])
+            seg_engine(data_dict["input"], scaled_boxes)
         ))},
 
     # update input by removing bg
