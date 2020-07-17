@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import math
 import os
+import json
 
 from monoport.lib.render.gl.glcontext import create_opengl_context
 from monoport.lib.render.gl.AlbedoRender import AlbedoRender
@@ -47,6 +48,15 @@ def _load_intrinsic(near=0.0, far=10.0, scale=2.0):
     intrinsic_cam.far = far
     intrinsic_cam.set_parameters(scale, scale)
     return intrinsic_cam.get_projection_mat()
+
+
+def _load_extrinsic():
+    path = os.path.join(
+        _RTL_DATA_FOLDER, 'webxr/modelview.json')
+    with open(path, 'r') as f:
+        extrinsic = json.load(f)['data']
+    extrinsic = np.array(extrinsic).reshape(4, 4).T
+    return extrinsic
 
 
 def make_rotate(rx, ry, rz):
@@ -117,9 +127,16 @@ class MonoPortScene:
                 )
             self.extrinsic[0:3, 0:3] = R 
             self.step += 3
-            pass
+            extrinsic = self.extrinsic
+        else:
+            while True:
+                try:
+                    extrinsic = _load_extrinsic()
+                    break
+                except Exception as e:
+                    print (e)
         
-        return self.extrinsic, self.intrinsic
+        return extrinsic, self.intrinsic
 
     def render(self, extrinsic, intrinsic):
         uniform_dict = {

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>RT-MonoTeleport</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta
+        name="viewport" content="width=device-width, initial-scale=1">
+
+        <!-- import the webpage's stylesheet -->
+        <link rel="stylesheet" href="static/css/style.css">
+
+        <script type="text/javascript">
+        // Connect a websocket to the server. The port notation is post-
+        // processed server-side according to the config file
+
+        function stringFromArray(data)
+        {
+            var count = data.length;
+            var str = "";
+            
+            for(var index = 0; index < count; index += 1)
+            str += String.fromCharCode(data[index]);
+            
+            return str;
+        }
+
+
+        var client = {
+            queue: {},
+            img_norm_str : null,
+            img_tex_str : null,
+
+            Switch: function () {
+                var uuid = this.uuid();
+                this.socket.send(
+                    JSON.stringify({
+                        method: "switch",
+                        id: uuid,
+                        name: "switch",
+                    })
+                );
+                this.queue[uuid] = "switch";
+            },
+
+            // Connects to Python through the websocket
+            connect: function (port) {
+                var self = this;
+                var base64data = null;
+                this.socket = new WebSocket(
+                    "wss://" + window.location.hostname + ":" + port + "/websocket"
+                );
+
+                this.socket.onopen = function () {
+                    console.log("Connected!");
+                };
+
+                this.socket.onmessage = function (messageEvent) {
+                    // var jsonRpc, router;
+
+                    // jsonRpc = JSON.parse(messageEvent.data);
+                    // router = self.queue[jsonRpc.id];
+                    // delete self.queue[jsonRpc.id];
+                    // this.img_norm_str = "data:image/jpg;base64, " + jsonRpc.img_norm;
+                    var reader = new FileReader();
+                    reader.readAsDataURL(messageEvent.data); 
+                    reader.onloadend = function() {
+                        base64data = reader.result;               
+                    };
+                    this.img_tex_str = "data:image/jpg;" + base64data.split(";")[1]; 
+
+                    // document.getElementById("display1").setAttribute("src", img_norm_str);
+                    document.getElementById("display2").setAttribute("src", this.img_tex_str);
+                };
+            },
+
+            // Generates a unique identifier for request ids
+            // Code from http://stackoverflow.com/questions/105034/
+            // how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+            uuid: function () {
+                return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (
+                c
+                ) {
+                var r = (Math.random() * 16) | 0,
+                    v = c == "x" ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+                });
+            },
+
+        
+            };
+
+        </script>
+
+    </head>
+    <body>
+
+        <table>
+            <!-- <tr>
+                <td><img class="display" id="display1" src=""/></td>
+            </tr> -->
+            <tr>
+                <td><img class="display" id="display2" src=""/></td>
+            </tr>
+        </table>
+        
+        <button onclick="client.Switch()" id="switch">
+            switch
+        </button>
+
+        <script type="text/javascript">
+            // Connect a websocket to the server. The port notation is post-
+            // processed server-side according to the config file
+            client.connect({{ port }});
+        </script>
+    </body>
+</html>

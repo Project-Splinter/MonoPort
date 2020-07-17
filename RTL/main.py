@@ -266,7 +266,7 @@ processors=[
         **data_dict, 
         **dict(zip(
             ["extrinsic", "intrinsic"], 
-            scene.update_camera(load=False),
+            scene.update_camera(load=True),
         ))},
 
     # calculate calib tensor
