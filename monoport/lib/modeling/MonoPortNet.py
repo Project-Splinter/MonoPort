@@ -39,6 +39,7 @@ class MonoPortNet(nn.Module):
         """
         feats_stages = self.image_filter(images)
         if feat_prior is not None: # for netC
+            feat_prior = F.interpolate(feat_prior, size=(128, 128))
             feats_stages = [
                 [torch.cat([feat_prior, feat_per_lvl], dim=1) 
                 for feat_per_lvl in feats] for feats in feats_stages]
@@ -86,7 +87,7 @@ class MonoPortNet(nn.Module):
 
             # out of image plane is always set to 0
             preds = in_img[:, None].float() * pred
-            pred_stages.append(pred)
+            pred_stages.append(preds)
         return pred_stages
 
     def get_loss(self, pred_stages, labels):

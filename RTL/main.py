@@ -266,14 +266,14 @@ processors=[
         **data_dict, 
         **dict(zip(
             ["extrinsic", "intrinsic"], 
-            scene.update_camera(load=True),
+            scene.update_camera(load=False),
         ))},
 
     # calculate calib tensor
     lambda data_dict: {
         **data_dict, 
         "calib_tensor": pifu_calib(
-            data_dict["extrinsic"], data_dict["intrinsic"], "cuda:0")
+            data_dict["extrinsic"], data_dict["intrinsic"], device=cuda_recon)
         },  
     
     # instance segmentation:
@@ -287,22 +287,28 @@ processors=[
     # update input by removing bg
     lambda data_dict: {
         **data_dict, 
-        "input": (
+        "input_netG": (
             ((data_dict["segm"][:, 0:3] * 0.5 + 0.5) - mean) / std
             )*data_dict["segm"][:, 3:4]
+        }, 
+
+    # update input by removing bg
+    lambda data_dict: {
+        **data_dict, 
+        "input_netC": data_dict["segm"][:, 0:3] * data_dict["segm"][:, 3:4]
         },  
 
     # pifu netG feature extraction
     lambda data_dict: {
         **data_dict, 
-        "feat_tensor_G": netG.filter(data_dict["input"])
+        "feat_tensor_G": netG.filter(data_dict["input_netG"])
         }, 
 
     # pifu netC feature extraction
     lambda data_dict: {
         **data_dict, 
         "feat_tensor_C": netC.filter(
-            data_dict["input"].to(cuda_backbone_C, non_blocking=True),
+            data_dict["input_netC"].to(cuda_backbone_C, non_blocking=True),
             feat_prior=data_dict["feat_tensor_G"][-1][-1]) if netC else None
         }, 
 

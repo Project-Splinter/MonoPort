@@ -6,7 +6,7 @@ def pifu_calib(extrinsic, intrinsic, device="cuda:0"):
     pifu_matrix = np.array([
         [1.0, 0.0, 0.0, 0.0],
         [0.0, -1.0, 0.0, 0.0],
-        [0.0, 0.0, -1.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
         [0.0, 0.0, 0.0, 1.0],
     ])
 

@@ -7,4 +7,9 @@ python RTL/main.py \
     netG.backbone.IMF "Yolov4Filters" \
     netG.normalizer.IMF "PIFuNomalizer" \
     netG.head.IMF "PIFuNetGMLP" \
-    netG.ckpt_path "./data/Yolov4/netG_epoch_latest"
+    netG.ckpt_path "./data/Yolov4/netG_epoch_latest" \
+    netC.projection "orthogonal" \
+    netC.backbone.IMF "PIFuResBlkFilters" \
+    netC.normalizer.IMF "PIFuNomalizer" \
+    netC.head.IMF "PIFuNetCMLP" \
+    netC.ckpt_path "./data/Yolov4/netC_latest"

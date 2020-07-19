@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>RT-MonoTeleport</title>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta
+        name="viewport" content="width=device-width, initial-scale=1">
+
+        <script>
+        function stringFromArray(data)
+        {
+            var count = data.length;
+            var str = "";
+            
+            for(var index = 0; index < count; index += 1)
+            str += String.fromCharCode(data[index]);
+            
+            return str;
+        }
+
+
+        var client = {
+            queue: {},
+            img_norm_str : null,
+            img_tex_str : null,
+
+            Switch: function () {
+                var uuid = this.uuid();
+                this.socket.send(
+                    JSON.stringify({
+                        method: "switch",
+                        id: uuid,
+                        name: "switch",
+                    })
+                );
+                this.queue[uuid] = "switch";
+            },
+
+            // Connects to Python through the websocket
+            connect: function () {
+                var self = this;
+                var base64data = null;
+                this.socket = new WebSocket("ws://127.0.0.1:5555/");
+
+                this.socket.onopen = function () {
+                    console.log("Connected!");
+                };
+
+                this.socket.onmessage = function (messageEvent) {
+                    this.img_str = "data:image/jpg;base64, " + messageEvent.data; 
+                    document.getElementById("display").setAttribute("src", this.img_str);
+                };
+            },
+
+            // Generates a unique identifier for request ids
+            // Code from http://stackoverflow.com/questions/105034/
+            // how-to-create-a-guid-uuid-in-javascript/2117523#2117523
+            uuid: function () {
+                return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (
+                c
+                ) {
+                var r = (Math.random() * 16) | 0,
+                    v = c == "x" ? r : (r & 0x3) | 0x8;
+                return v.toString(16);
+                });
+            },
+
+        
+            };
+
+        </script>
+
+    </head>
+    <body>
+        <table>
+            <tr>
+                <td><img class="display" id="display" src=""/></td>
+            </tr>
+        </table>
+        
+        <button onclick="client.Switch()" id="switch">
+            switch
+        </button>
+
+        <script type="text/javascript">
+            client.connect();
+        </script>
+    </body>
+</html>
