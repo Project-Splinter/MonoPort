@@ -397,7 +397,9 @@ loader = DataLoader(
     processors=processors,
 )
 
-with torch.no_grad():
+
+@torch.no_grad()
+def main_loop():
     for data_dict in tqdm.tqdm(loader):
         extrinsic = data_dict["extrinsic"]
         intrinsic = data_dict["intrinsic"]
@@ -415,6 +417,75 @@ with torch.no_grad():
         else:
             window = render_norm
         
+        yield window
+        
+
+# access server:
+# http://localhost:9999/scripts/unit_tests/test_server.html
+if __name__ == '__main__':
+    import asyncio
+    import websockets
+    import threading
+    import time
+    import random
+    import glob
+    from base64 import b64encode
+    from sys import getsizeof
+    from io import BytesIO
+    from PIL import Image
+
+
+    def img_base64(img_path):
+        with open(img_path,"rb") as f:
+            data = f.read()
+            print("data:", getsizeof(data))
+            assert data[-2:] == b'\xff\xd9'
+            base64_str = b64encode(data).decode('utf-8')
+            print("base64:", getsizeof(base64_str))
+        return base64_str
+
+    async def send(client, data):
+        await client.send(data)
+
+    async def handler(client, path):
+        # Register.
+        print("Websocket Client Connected.", client)
+        clients.append(client)
+        while True:
+            try:
+                # print("ping", client)
+                pong_waiter = await client.ping()
+                await pong_waiter
+                # print("pong", client)
+                time.sleep(3)
+            except Exception as e:
+                clients.remove(client)
+                print("Websocket Client Disconnected", client)
+                break
+
+    clients = []
+    start_server = websockets.serve(handler, "192.168.1.232", 5555)
+
+    asyncio.get_event_loop().run_until_complete(start_server)
+    threading.Thread(target = asyncio.get_event_loop().run_forever).start()
+
+    print("Socket Server Running. Starting main loop.")
+            
+    for window in main_loop():
+        message_clients = clients.copy()
+        for client in message_clients:
+            pil_img = Image.fromarray(window[:, :, ::-1])
+            buff = BytesIO()
+            pil_img.save(buff, format="JPEG")
+            data = b64encode(buff.getvalue()).decode("utf-8")
+
+            print("Sending data to client")
+            try:
+                asyncio.run(send(client, data))
+            except:
+                # Clients might have disconnected during the messaging process,
+                # just ignore that, they will have been removed already.
+                pass
         cv2.imshow('window', window)
         cv2.waitKey(1)
-        pass
+        

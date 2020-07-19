@@ -41,7 +41,7 @@
             connect: function () {
                 var self = this;
                 var base64data = null;
-                this.socket = new WebSocket("ws://127.0.0.1:5555/");
+                this.socket = new WebSocket("ws://192.168.1.232:5555/");
 
                 this.socket.onopen = function () {
                     console.log("Connected!");
