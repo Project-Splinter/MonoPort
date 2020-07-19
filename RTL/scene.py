@@ -95,14 +95,14 @@ def make_rotate(rx, ry, rz):
 
 class MonoPortScene:
     def __init__(self, size=(512, 512)):
-        vert_data, uv_data, texture_image = _load_grass()
+        self.vert_data, self.uv_data, self.texture_image = _load_grass()
         self.intrinsic = _load_intrinsic()
 
         create_opengl_context(size[0], size[1])
         self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
-        self.renderer.set_attrib(0, vert_data)
-        self.renderer.set_attrib(1, uv_data)
-        self.renderer.set_texture('TargetTexture', texture_image)
+        self.renderer.set_attrib(0, self.vert_data)
+        self.renderer.set_attrib(1, self.uv_data)
+        self.renderer.set_texture('TargetTexture', self.texture_image)
 
         self.extrinsic = np.array([
             [1.0, 0.0, 0.0, 0.0],

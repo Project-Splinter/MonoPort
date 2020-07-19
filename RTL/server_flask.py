@@ -13,6 +13,8 @@ from base64 import b64encode
 from sys import getsizeof
 from main import *
 
+from monoport.lib.render.gl.glcontext import create_opengl_context
+from monoport.lib.render.gl.AlbedoRender import AlbedoRender
 
 # initialize the output frame and a lock used to ensure thread-safe
 # exchanges of the output frames (useful when multiple browsers/tabs
@@ -45,12 +47,27 @@ def generate():
     #     filename = _IMAGES[_IMAGES_IDX % len(_IMAGES)]
     #     _IMAGES_IDX += 1
     #     image = cv2.imread(filename)
+    create_opengl_context(256, 256)
+    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
+    renderer.set_attrib(0, scene.vert_data)
+    renderer.set_attrib(1, scene.uv_data)
+    renderer.set_texture('TargetTexture', scene.texture_image)
+    
     for data_dict in loader:
         extrinsic = data_dict["extrinsic"]
         intrinsic = data_dict["intrinsic"]
-        
-        # background = scene.render(extrinsic, intrinsic)
-        background = np.zeros((256, 256, 3), dtype=np.float32)
+
+        # create_opengl_context(512, 512)
+        # renderer = AlbedoRender(width=512, height=512, multi_sample_rate=1)
+        # renderer.set_attrib(0, scene.vert_data)
+        # renderer.set_attrib(1, scene.uv_data)
+        renderer.set_texture('TargetTexture', scene.texture_image)
+        uniform_dict = {'ModelMat': extrinsic, 'PerspMat': intrinsic}
+        renderer.draw(uniform_dict)
+        color = (renderer.get_color() * 255).astype(np.uint8)
+        background = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)
+
+        # background = np.zeros((256, 256, 3), dtype=np.float32)
 
         render_norm = data_dict["render_norm"]
         render_tex = data_dict["render_tex"]
