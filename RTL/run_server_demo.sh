@@ -2,7 +2,7 @@
 
 
 python RTL/server_flask.py \
-    --image_folder /home/rui/local/projects/PIFu-RealTime/zenTelePort/data/recording/test \
+    --camera \
     -- \
     netG.projection orthogonal \
     netG.backbone.IMF PIFuHGFilters \

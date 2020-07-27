@@ -4,7 +4,14 @@ import argparse
 import glob
 import tqdm
 import cv2
+import math
 import numpy as np
+from base64 import b64encode
+from sys import getsizeof
+
+from flask import Response
+from flask import Flask
+from flask import render_template
 
 import torch
 import torch.nn.functional as F
@@ -13,6 +20,8 @@ from monoport.lib.common.config import get_cfg_defaults
 from monoport.lib.modeling.MonoPortNet import MonoPortNet
 from monoport.lib.modeling.MonoPortNet import PIFuNetG, PIFuNetC
 from monoport.lib.modeling.geometry import orthogonal, perspective
+from monoport.lib.render.gl.glcontext import create_opengl_context
+from monoport.lib.render.gl.AlbedoRender import AlbedoRender
 
 import streamer_pytorch as streamer
 import human_inst_seg
@@ -20,9 +29,21 @@ from implicit_seg.functional import Seg3dTopk, Seg3dLossless
 from implicit_seg.functional.utils import plot_mask3D
 
 from dataloader import DataLoader
-from scene import MonoPortScene
+from scene import MonoPortScene, make_rotate
 from recon import pifu_calib, forward_vertices
 
+
+########################################
+## Global Control
+########################################
+DESKTOP_MODE = 'NORM'
+# assert DESKTOP_MODE in ['SEGM', 'NORM', 'TEXURE']
+
+SERVER_MODE = 'NORM'
+# assert SERVER_MODE in ['NORM', 'TEXTURE']
+
+VIEW_MODE = 'AUTO'
+# assert VIEW_MODE in ['FRONT', 'BACK', 'LEFT', 'RIGHT', 'AUTO', 'LOAD']
 
 ########################################
 ## load configs
@@ -42,9 +63,7 @@ parser.add_argument(
 parser.add_argument(
     '--loop', action="store_true")
 parser.add_argument(
-    '--vis', action="store_true")
-parser.add_argument(
-    '--use_VRweb', action="store_true")
+    '--use_server', action="store_true")
 
 argv = sys.argv[1:sys.argv.index('--')]
 args = parser.parse_args(argv)
@@ -236,14 +255,14 @@ def visulization(render_norm, render_tex=None):
     render_norm = torch.rot90(render_norm, 1, [0, 1]).permute(2, 0, 1).unsqueeze(0)
     render_norm = F.interpolate(render_norm, size=(render_size, render_size))
     render_norm = render_norm[0].cpu().numpy().transpose(1, 2, 0)
-    render_norm = cv2.cvtColor(render_norm, cv2.COLOR_BGR2RGB)
+    # render_norm = cv2.cvtColor(render_norm, cv2.COLOR_BGR2RGB)
 
     if render_tex is not None:
         render_tex = render_tex.detach() * 255.0
         render_tex = torch.rot90(render_tex, 1, [0, 1]).permute(2, 0, 1).unsqueeze(0)
         render_tex = F.interpolate(render_tex, size=(render_size, render_size))
         render_tex = render_tex[0].cpu().numpy().transpose(1, 2, 0)
-        render_tex = cv2.cvtColor(render_tex, cv2.COLOR_BGR2RGB)
+        # render_tex = cv2.cvtColor(render_tex, cv2.COLOR_BGR2RGB)
 
     bg = np.logical_and(
         np.logical_and(
@@ -264,6 +283,40 @@ mean = torch.tensor(cfg.netG.mean).to(cuda_backbone_G).view(1, 3, 1, 1)
 std = torch.tensor(cfg.netG.std).to(cuda_backbone_G).view(1, 3, 1, 1)
 scaled_boxes = [torch.Tensor([[ 50.0,  0.0, 450.0, 500.0]]).to(cuda_backbone_G)]
 
+def update_camera():
+    extrinsic = np.array([
+            [1.0, 0.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, -2.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ], dtype=np.float32)
+        
+    if VIEW_MODE == 'FRONT':
+        yaw, pitch = 35, 0  
+    elif VIEW_MODE == 'BACK':
+        yaw, pitch = 35, 180  
+    elif VIEW_MODE == 'LEFT':
+        yaw, pitch = 35, 90   
+    elif VIEW_MODE == 'RIGHT':
+        yaw, pitch = 35, 270
+    elif VIEW_MODE == 'AUTO':
+        extrinsic, intrinsic = scene.update_camera(load=False)
+        return extrinsic, intrinsic
+    elif VIEW_MODE == 'LOAD':
+        extrinsic, intrinsic = scene.update_camera(load=True)
+        return extrinsic, intrinsic
+    else:
+        raise NotImplementedError
+
+    intrinsic = scene.intrinsic
+    R = np.matmul(
+        make_rotate(math.radians(yaw), 0, 0), 
+        make_rotate(0, math.radians(pitch), 0)
+        )
+    extrinsic[0:3, 0:3] = R 
+    return extrinsic, intrinsic
+     
+
 processors=[
     lambda data: {"input": data.to(cuda_backbone_G, non_blocking=True)},
 
@@ -272,7 +325,7 @@ processors=[
         **data_dict, 
         **dict(zip(
             ["extrinsic", "intrinsic"], 
-            scene.update_camera(load=False),
+            update_camera(),
         ))},
 
     # calculate calib tensor
@@ -404,99 +457,274 @@ loader = DataLoader(
 )
 
 
-@torch.no_grad()
 def main_loop():
+    global DESKTOP_MODE, SERVER_MODE, VIEW_MODE
+
+    window_server = np.ones((256, 256, 3), dtype=np.uint8) * 255
+    window_desktop = np.ones((512, 1024, 3), dtype=np.uint8) * 255
+
+    create_opengl_context(256, 256)
+    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
+    renderer.set_attrib(0, scene.vert_data)
+    renderer.set_attrib(1, scene.uv_data)
+    renderer.set_texture('TargetTexture', scene.texture_image)
+
+    def render(extrinsic, intrinsic):
+        renderer.set_texture('TargetTexture', scene.texture_image)
+        uniform_dict = {'ModelMat': extrinsic, 'PerspMat': intrinsic}
+        renderer.draw(uniform_dict)
+        color = (renderer.get_color() * 255).astype(np.uint8)
+        background = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)
+        return background
+
     for data_dict in tqdm.tqdm(loader):
+        render_norm = data_dict["render_norm"] # [256, 256, 3] RGB
+        render_tex = data_dict["render_tex"] # [256, 256, 3] RGB
+        mask = data_dict["mask"]
         extrinsic = data_dict["extrinsic"]
         intrinsic = data_dict["intrinsic"]
         
-        background = scene.render(extrinsic, intrinsic)
-
-        render_norm = data_dict["render_norm"]
-        render_tex = data_dict["render_tex"]
-        mask = data_dict["mask"]
-        
-        if mask is None:
-            window = np.hstack([background, background])
-            yield window
-        
+        if DESKTOP_MODE is not None:
+            input4c = data_dict["segm"].cpu().numpy()[0].transpose(1, 2, 0) # [512, 512, 4]
+            input = (input4c[:, :, 0:3] * 0.5) + 0.5
+        if DESKTOP_MODE == 'SEGM':
+            segmentation = (input4c[:, :, 0:3] * input4c[:, :, 3:4] * 0.5) + 0.5
+            window_desktop = np.uint8(np.hstack([
+                input * 255, 
+                segmentation * 255
+                ])) # RGB
+        elif DESKTOP_MODE == 'NORM':
+            if render_norm is None:
+                render_norm = np.zeros((512, 512, 3), dtype=np.float32)
+            window_desktop = np.uint8(np.hstack([
+                input * 255, 
+                cv2.resize(render_norm, (512, 512))
+                ])) # RGB
+        elif DESKTOP_MODE == 'TEXTURE':
+            if render_tex is None:
+                render_tex = np.zeros((512, 512, 3), dtype=np.float32)
+            window_desktop = np.uint8(np.hstack([
+                input * 255, 
+                cv2.resize(render_tex, (512, 512))
+                ])) # RGB
         else:
-            render_norm = np.uint8(mask * render_norm + (1 - mask) * background)
-            if render_tex is not None:
-                render_tex = np.uint8(mask * render_tex + (1 - mask) * background)
-                window = np.hstack([render_norm, render_tex])
+            window_desktop = None
+
+        if DESKTOP_MODE is not None:
+            window_desktop = cv2.resize(window_desktop, (2400, 1200))
+            cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
+        
+        key = cv2.waitKey(1)
+        if key == ord('q'):
+            DESKTOP_MODE = 'SEGM'
+        elif key == ord('w'):
+            DESKTOP_MODE = 'NORM'
+        elif key == ord('e'):
+            DESKTOP_MODE = 'TEXTURE'
+        elif key == ord('r'):
+            DESKTOP_MODE = None
+
+        elif key == ord('a'):
+            SERVER_MODE = 'SEGM'
+        elif key == ord('s'):
+            SERVER_MODE = 'NORM'
+        elif key == ord('d'):
+            SERVER_MODE = 'TEXTURE'
+        elif key == ord('f'):
+            SERVER_MODE = None
+
+        elif key == ord('z'):
+            VIEW_MODE = 'FRONT'
+        elif key == ord('x'):
+            VIEW_MODE = 'BACK'
+        elif key == ord('c'):
+            VIEW_MODE = 'LEFT'
+        elif key == ord('v'):
+            VIEW_MODE = 'RIGHT'
+        elif key == ord('b'):
+            VIEW_MODE = 'AUTO'
+        elif key == ord('n'):
+            VIEW_MODE = 'LOAD'
+        
+        if args.use_server:
+            if SERVER_MODE == 'NORM':
+                background = render(extrinsic, intrinsic)
+                if mask is None:
+                    window_server = background
+                else:
+                    window_server = np.uint8(mask * render_norm + (1 - mask) * background)
+            elif SERVER_MODE == 'TEXTURE':
+                background = render(extrinsic, intrinsic)
+                if mask is None:
+                    window_server = background
+                else:
+                    window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
             else:
-                window = render_norm    
-            yield window
+                if render_norm is not None:
+                    window_server = np.uint8(render_norm)      
+            
+            # yield window_desktop, window_server
+            (flag, encodedImage) = cv2.imencode(".jpg", window_server[:, :, ::-1])
+            if not flag:
+                continue
+            yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
+                bytearray(encodedImage) + b'\r\n')
+
+
+if __name__ == '__main__':
+    if args.use_server:
+        ########################################
+        ## Flask related
+        ########################################
+        app = Flask(__name__)
+
+        def img_base64(img_path):
+            with open(img_path,"rb") as f:
+                data = f.read()
+                print("data:", getsizeof(data))
+                assert data[-2:] == b'\xff\xd9'
+                base64_str = b64encode(data).decode('utf-8')
+                print("base64:", getsizeof(base64_str))
+            return base64_str
+
+        @app.route("/")
+        def index():
+            return render_template("test_flask.html")
+        
+        @app.route("/video_feed")
+        def video_feed():
+            return Response(main_loop(),
+                mimetype = "multipart/x-mixed-replace; boundary=frame")
+
+        # start the flask app
+        app.run(host="192.168.1.232", port="5555", debug=True,
+            threaded=True, use_reloader=False)
+    else:
+        print('start main_loop.')
+        for _ in main_loop():
+            pass
+
+# @torch.no_grad()
+# def main_loop():
+#     for data_dict in tqdm.tqdm(loader):
+#         # for visualization on the ubuntu main screen
+#         input4c = data_dict["segm"].cpu().numpy()[0].transpose(1, 2, 0) # [512, 512, 4]
+#         input = (input4c[:, :, 0:3] * 0.5) + 0.5
+#         segmentation = (input4c[:, :, 0:3] * input4c[:, :, 3:4] * 0.5) + 0.5
+        
+#         render_norm = data_dict["render_norm"] # [256, 256, 3] RGB
+#         render_tex = data_dict["render_tex"] # [256, 256, 3] RGB
+#         mask = data_dict["mask"]
+#         extrinsic = data_dict["extrinsic"]
+#         intrinsic = data_dict["intrinsic"]
+        
+#         if DESKTOP_MODE == 'SEGM':
+#             window_desktop = np.uint8(np.hstack([
+#                 input * 255, 
+#                 segmentation * 255
+#                 ])) # RGB
+#         elif DESKTOP_MODE == 'NORM':
+#             if render_norm is None:
+#                 render_norm = np.zeros((512, 512, 3), dtype=np.float32)
+#             window_desktop = np.uint8(np.hstack([
+#                 input * 255, 
+#                 cv2.resize(render_norm, (512, 512))
+#                 ])) # RGB
+#         elif DESKTOP_MODE == 'TEXTURE':
+#             if render_tex is None:
+#                 render_tex = np.zeros((512, 512, 3), dtype=np.float32)
+#             window_desktop = np.uint8(np.hstack([
+#                 input * 255, 
+#                 cv2.resize(render_tex, (512, 512))
+#                 ])) # RGB
+#         else:
+#             window_desktop = None
+
+#         # if SERVER_MODE == 'NORM':
+#         #     background = scene.render(extrinsic, intrinsic)
+#         #     if mask is None:
+#         #         window_server = background
+#         #     else:
+#         #         window_server = np.uint8(mask * render_norm + (1 - mask) * background)
+#         # elif SERVER_MODE == 'TEXTURE':
+#         #     background = scene.render(extrinsic, intrinsic)
+#         #     if mask is None:
+#         #         window_server = background
+#         #     else:
+#         #         window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
+#         # else:
+#         #     window_server = None
+        
+#         yield window_desktop
         
 
-# access server:
-# http://localhost:9999/scripts/unit_tests/test_server.html
-if __name__ == '__main__':
-    import asyncio
-    import websockets
-    import threading
-    import time
-    import random
-    import glob
-    from base64 import b64encode
-    from sys import getsizeof
-    from io import BytesIO
-    from PIL import Image
+# # access server:
+# # http://localhost:9999/scripts/unit_tests/test_server.html
+# if __name__ == '__main__':
+#     import asyncio
+#     import websockets
+#     import threading
+#     import time
+#     import random
+#     import glob
+#     from base64 import b64encode
+#     from sys import getsizeof
+#     from io import BytesIO
+#     from PIL import Image
 
 
-    def img_base64(img_path):
-        with open(img_path,"rb") as f:
-            data = f.read()
-            print("data:", getsizeof(data))
-            assert data[-2:] == b'\xff\xd9'
-            base64_str = b64encode(data).decode('utf-8')
-            print("base64:", getsizeof(base64_str))
-        return base64_str
+#     def img_base64(img_path):
+#         with open(img_path,"rb") as f:
+#             data = f.read()
+#             print("data:", getsizeof(data))
+#             assert data[-2:] == b'\xff\xd9'
+#             base64_str = b64encode(data).decode('utf-8')
+#             print("base64:", getsizeof(base64_str))
+#         return base64_str
 
-    async def send(client, data):
-        await client.send(data)
+#     async def send(client, data):
+#         await client.send(data)
 
-    async def handler(client, path):
-        # Register.
-        print("Websocket Client Connected.", client)
-        clients.append(client)
-        while True:
-            try:
-                # print("ping", client)
-                pong_waiter = await client.ping()
-                await pong_waiter
-                # print("pong", client)
-                time.sleep(3)
-            except Exception as e:
-                clients.remove(client)
-                print("Websocket Client Disconnected", client)
-                break
+#     async def handler(client, path):
+#         # Register.
+#         print("Websocket Client Connected.", client)
+#         clients.append(client)
+#         while True:
+#             try:
+#                 # print("ping", client)
+#                 pong_waiter = await client.ping()
+#                 await pong_waiter
+#                 # print("pong", client)
+#                 time.sleep(3)
+#             except Exception as e:
+#                 clients.remove(client)
+#                 print("Websocket Client Disconnected", client)
+#                 break
 
-    clients = []
-    start_server = websockets.serve(handler, "192.168.1.232", 5555)
+#     clients = []
+#     start_server = websockets.serve(handler, "192.168.1.232", 5555)
 
-    asyncio.get_event_loop().run_until_complete(start_server)
-    threading.Thread(target = asyncio.get_event_loop().run_forever).start()
+#     asyncio.get_event_loop().run_until_complete(start_server)
+#     threading.Thread(target = asyncio.get_event_loop().run_forever).start()
 
-    print("Socket Server Running. Starting main loop.")
+#     print(f"Socket Server Running on 192.168.1.232:5555. Starting main loop.")
             
-    for window in main_loop():
-        message_clients = clients.copy()
-        for client in message_clients:
-            pil_img = Image.fromarray(window[:, :, ::-1])
-            buff = BytesIO()
-            pil_img.save(buff, format="JPEG")
-            data = b64encode(buff.getvalue()).decode("utf-8")
+#     for window_desktop in main_loop():
+#         # message_clients = clients.copy()
+#         # for client in message_clients:
+#         #     pil_img = Image.fromarray(window_server)
+#         #     buff = BytesIO()
+#         #     pil_img.save(buff, format="JPEG")
+#         #     data = b64encode(buff.getvalue()).decode("utf-8")
 
-            print("Sending data to client")
-            try:
-                asyncio.run(send(client, data))
-            except:
-                # Clients might have disconnected during the messaging process,
-                # just ignore that, they will have been removed already.
-                pass
-        window = cv2.resize(window, (0, 0), fx=3, fy=3)
-        cv2.imshow('window', window)
-        cv2.waitKey(1)
+#         #     print("Sending data to client")
+#         #     try:
+#         #         asyncio.run(send(client, data))
+#         #     except:
+#         #         # Clients might have disconnected during the messaging process,
+#         #         # just ignore that, they will have been removed already.
+#         #         pass
+#         window_desktop = cv2.resize(window_desktop, (0, 0), fx=2, fy=2)
+#         cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
+#         cv2.waitKey(1)
         
