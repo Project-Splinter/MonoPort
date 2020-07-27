@@ -29,6 +29,11 @@ def forward_vertices(sdf, direction="front"):
     '''
         - direction: "front" | "back" | "left" | "right"
     '''
+    if sdf is None:
+        return None, None, None, None
+    else:
+        sdf = sdf[0, 0]
+        
     device = sdf.device
     resolution = sdf.size(2)
     if direction == "front":

@@ -109,7 +109,7 @@ else:
 ########################################
 print (f'initialize data streamer ...')
 if args.camera:
-    data_stream = streamer.CaptureStreamer()
+    data_stream = streamer.CaptureStreamer(pad=False)
 elif len(args.videos) > 0:
     data_stream = streamer.VideoListStreamer(
         args.videos * (10 if args.loop else 1))
@@ -187,6 +187,9 @@ mat_color = mat.to(cuda_color)
 
 @torch.no_grad()
 def colorization(netC, feat_tensor_C, X, Y, Z, calib_tensor, norm=None):
+    if X is None:
+        return None
+
     device = calib_tensor.device
     global canvas
     # use normal as color
@@ -224,6 +227,9 @@ def colorization(netC, feat_tensor_C, X, Y, Z, calib_tensor, norm=None):
 
 @torch.no_grad()
 def visulization(render_norm, render_tex=None):
+    if render_norm is None and render_tex is None:
+        return None, None, None
+
     render_size = 256
 
     render_norm = render_norm.detach() * 255.0
@@ -325,7 +331,7 @@ processors=[
         **data_dict, 
         "sdf": reconEngine(
             im_feat_list=data_dict["feat_tensor_G"],
-            calib_tensor=data_dict["calib_tensor"])[0, 0]
+            calib_tensor=data_dict["calib_tensor"])
         },  
 
     # lambda data_dict: plot_mask3D(
@@ -341,11 +347,11 @@ processors=[
 
     lambda data_dict: {
         **data_dict, 
-        "X": data_dict['X'].to(cuda_color),
-        "Y": data_dict['Y'].to(cuda_color),
-        "Z": data_dict['Z'].to(cuda_color),
-        "norm": data_dict['norm'].to(cuda_color),
-        "calib_tensor": data_dict['calib_tensor'].to(cuda_color),
+        "X": data_dict['X'].to(cuda_color) if data_dict['X'] is not None else None,
+        "Y": data_dict['Y'].to(cuda_color) if data_dict['X'] is not None else None,
+        "Z": data_dict['Z'].to(cuda_color) if data_dict['X'] is not None else None,
+        "norm": data_dict['norm'].to(cuda_color) if data_dict['X'] is not None else None,
+        "calib_tensor": data_dict['calib_tensor'].to(cuda_color) if data_dict['X'] is not None else None,
         },  
 
     # pifu render normal
@@ -409,15 +415,19 @@ def main_loop():
         render_norm = data_dict["render_norm"]
         render_tex = data_dict["render_tex"]
         mask = data_dict["mask"]
-
-        render_norm = np.uint8(mask * render_norm + (1 - mask) * background)
-        if render_tex is not None:
-            render_tex = np.uint8(mask * render_tex + (1 - mask) * background)
-            window = np.hstack([render_norm, render_tex])
-        else:
-            window = render_norm
         
-        yield window
+        if mask is None:
+            window = np.hstack([background, background])
+            yield window
+        
+        else:
+            render_norm = np.uint8(mask * render_norm + (1 - mask) * background)
+            if render_tex is not None:
+                render_tex = np.uint8(mask * render_tex + (1 - mask) * background)
+                window = np.hstack([render_norm, render_tex])
+            else:
+                window = render_norm    
+            yield window
         
 
 # access server:
@@ -486,6 +496,7 @@ if __name__ == '__main__':
                 # Clients might have disconnected during the messaging process,
                 # just ignore that, they will have been removed already.
                 pass
+        window = cv2.resize(window, (0, 0), fx=3, fy=3)
         cv2.imshow('window', window)
         cv2.waitKey(1)
         
