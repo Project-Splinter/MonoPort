@@ -39,7 +39,7 @@ from recon import pifu_calib, forward_vertices
 DESKTOP_MODE = 'NORM'
 # assert DESKTOP_MODE in ['SEGM', 'NORM', 'TEXURE']
 
-SERVER_MODE = 'NORM'
+SERVER_MODE = None
 # assert SERVER_MODE in ['NORM', 'TEXTURE']
 
 VIEW_MODE = 'AUTO'
@@ -463,8 +463,8 @@ def main_loop():
     window_server = np.ones((256, 256, 3), dtype=np.uint8) * 255
     window_desktop = np.ones((512, 1024, 3), dtype=np.uint8) * 255
 
-    create_opengl_context(256, 256)
-    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
+    create_opengl_context(128, 128)
+    renderer = AlbedoRender(width=128, height=128, multi_sample_rate=1)
     renderer.set_attrib(0, scene.vert_data)
     renderer.set_attrib(1, scene.uv_data)
     renderer.set_texture('TargetTexture', scene.texture_image)
@@ -475,6 +475,7 @@ def main_loop():
         renderer.draw(uniform_dict)
         color = (renderer.get_color() * 255).astype(np.uint8)
         background = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)
+        background = cv2.resize(background, (256, 256))
         return background
 
     for data_dict in tqdm.tqdm(loader):
@@ -495,14 +496,14 @@ def main_loop():
                 ])) # RGB
         elif DESKTOP_MODE == 'NORM':
             if render_norm is None:
-                render_norm = np.zeros((512, 512, 3), dtype=np.float32)
+                render_norm = np.ones((512, 512, 3), dtype=np.float32) * 255
             window_desktop = np.uint8(np.hstack([
                 input * 255, 
                 cv2.resize(render_norm, (512, 512))
                 ])) # RGB
         elif DESKTOP_MODE == 'TEXTURE':
             if render_tex is None:
-                render_tex = np.zeros((512, 512, 3), dtype=np.float32)
+                render_tex = np.ones((512, 512, 3), dtype=np.float32) * 255
             window_desktop = np.uint8(np.hstack([
                 input * 255, 
                 cv2.resize(render_tex, (512, 512))

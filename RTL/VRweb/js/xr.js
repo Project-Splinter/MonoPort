@@ -795,11 +795,11 @@ function renderScene(gl, view, programInfo, buffers, texture) {
   displayMatrix(normalMatrix, 4, normalMatrixOut);
   displayMatrix(mouseMatrix, 4, mouseMatrixOut);
 
-  client.updateMatrix("projection", view.projectionMatrix);
+  // client.updateMatrix("projection", view.projectionMatrix);
   client.updateMatrix("modelview", modelViewMatrix);
-  client.updateMatrix("transform", view.transform.matrix);
-  client.updateMatrix("normal", normalMatrix);
-  client.updateMatrix("mouse", mouseMatrix);
+  // client.updateMatrix("transform", view.transform.matrix);
+  // client.updateMatrix("normal", normalMatrix);
+  // client.updateMatrix("mouse", mouseMatrix);
 
   // Tell WebGL how to pull out the positions from the position
   // buffer into the vertexPosition attribute

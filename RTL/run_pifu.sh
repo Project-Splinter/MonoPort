@@ -1,5 +1,6 @@
 python RTL/main.py \
-    --camera \
+    --image_folder "/home/rui/local/projects/PIFu-RealTime/zenTelePort/data/recording/test" \
+    --use_server \
     -- \
     netG.projection orthogonal \
     netG.backbone.IMF PIFuHGFilters \

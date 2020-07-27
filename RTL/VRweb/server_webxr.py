@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import time
 import numpy as np
 from base64 import b64encode
 from PIL import Image
@@ -30,14 +31,19 @@ class IndexHandler(tornado.web.RequestHandler):
 class WebSocket(tornado.websocket.WebSocketHandler):
     def open(self):
         print ('user connected!')
+        self.timer = 0
 
     def on_message(self, message):
-        """Evaluates the function pointed to by json-rpc."""
-        json_rpc = json.loads(message)
-        path = os.path.join(
-            _RTL_DATA_FOLDER, f'webxr/{json_rpc["name"]}.json')
-        with open(path, 'w') as f:
-            json.dump(from_dict_to_json(json_rpc["data"]), f, indent=4)
+        timer = time.time() # sec
+        if timer - self.timer > 0.1:
+            self.timer = timer
+            """Evaluates the function pointed to by json-rpc."""
+            json_rpc = json.loads(message)
+            print (timer, json_rpc["name"])
+            path = os.path.join(
+                _RTL_DATA_FOLDER, f'webxr/{json_rpc["name"]}.json')
+            with open(path, 'w') as f:
+                json.dump(from_dict_to_json(json_rpc["data"]), f, indent=4)
 
             
 # python server_webxr.py --port 8000 --cert ruilong
