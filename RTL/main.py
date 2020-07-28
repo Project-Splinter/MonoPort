@@ -251,24 +251,25 @@ def visulization(render_norm, render_tex=None):
 
     render_size = 256
 
-    render_norm = render_norm.detach() * 255.0
-    render_norm = torch.rot90(render_norm, 1, [0, 1]).permute(2, 0, 1).unsqueeze(0)
-    render_norm = F.interpolate(render_norm, size=(render_size, render_size))
-    render_norm = render_norm[0].cpu().numpy().transpose(1, 2, 0)
-    # render_norm = cv2.cvtColor(render_norm, cv2.COLOR_BGR2RGB)
+    if render_norm is not None:
+        render_norm = render_norm.detach() * 255.0
+        render_norm = torch.rot90(render_norm, 1, [0, 1]).permute(2, 0, 1).unsqueeze(0)
+        render_norm = F.interpolate(render_norm, size=(render_size, render_size))
+        render_norm = render_norm[0].cpu().numpy().transpose(1, 2, 0)
+        reference = render_norm
 
     if render_tex is not None:
         render_tex = render_tex.detach() * 255.0
         render_tex = torch.rot90(render_tex, 1, [0, 1]).permute(2, 0, 1).unsqueeze(0)
         render_tex = F.interpolate(render_tex, size=(render_size, render_size))
         render_tex = render_tex[0].cpu().numpy().transpose(1, 2, 0)
-        # render_tex = cv2.cvtColor(render_tex, cv2.COLOR_BGR2RGB)
+        reference = render_tex
 
     bg = np.logical_and(
         np.logical_and(
-            render_norm[:, :, 0] == 255,
-            render_norm[:, :, 1] == 255),
-        render_norm[:, :, 2] == 255,
+            reference[:, :, 0] == 255,
+            reference[:, :, 1] == 255),
+        reference[:, :, 2] == 255,
     ).reshape(render_size, render_size, 1)
     mask = ~bg
 
@@ -368,7 +369,8 @@ processors=[
         **data_dict, 
         "feat_tensor_C": netC.filter(
             data_dict["input_netC"].to(cuda_backbone_C, non_blocking=True),
-            feat_prior=data_dict["feat_tensor_G"][-1][-1]) if netC else None
+            feat_prior=data_dict["feat_tensor_G"][-1][-1]) \
+                if (netC is not None) and (DESKTOP_MODE == 'TEXTURE' or SERVER_MODE == 'TEXTURE')  else None
         }, 
 
     # move feature to cuda_recon device
@@ -417,7 +419,7 @@ processors=[
             data_dict["Y"],
             data_dict["Z"],
             data_dict["calib_tensor"],
-            data_dict["norm"])
+            data_dict["norm"]) if (DESKTOP_MODE == 'NORM' or SERVER_MODE == 'NORM')  else None
         },  
 
     # pifu render texture
@@ -430,7 +432,7 @@ processors=[
             data_dict["Y"],
             data_dict["Z"],
             data_dict["calib_tensor"],
-            None) if netC else None
+            None) if data_dict["feat_tensor_C"] else None
         },
 
     # visualization
@@ -463,14 +465,13 @@ def main_loop():
     window_server = np.ones((256, 256, 3), dtype=np.uint8) * 255
     window_desktop = np.ones((512, 1024, 3), dtype=np.uint8) * 255
 
-    create_opengl_context(128, 128)
-    renderer = AlbedoRender(width=128, height=128, multi_sample_rate=1)
+    create_opengl_context(256, 256)
+    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
     renderer.set_attrib(0, scene.vert_data)
     renderer.set_attrib(1, scene.uv_data)
     renderer.set_texture('TargetTexture', scene.texture_image)
 
     def render(extrinsic, intrinsic):
-        renderer.set_texture('TargetTexture', scene.texture_image)
         uniform_dict = {'ModelMat': extrinsic, 'PerspMat': intrinsic}
         renderer.draw(uniform_dict)
         color = (renderer.get_color() * 255).astype(np.uint8)
@@ -496,14 +497,14 @@ def main_loop():
                 ])) # RGB
         elif DESKTOP_MODE == 'NORM':
             if render_norm is None:
-                render_norm = np.ones((512, 512, 3), dtype=np.float32) * 255
+                render_norm = np.ones((256, 256, 3), dtype=np.float32) * 255
             window_desktop = np.uint8(np.hstack([
                 input * 255, 
                 cv2.resize(render_norm, (512, 512))
                 ])) # RGB
         elif DESKTOP_MODE == 'TEXTURE':
             if render_tex is None:
-                render_tex = np.ones((512, 512, 3), dtype=np.float32) * 255
+                render_tex = np.ones((256, 256, 3), dtype=np.float32) * 255
             window_desktop = np.uint8(np.hstack([
                 input * 255, 
                 cv2.resize(render_tex, (512, 512))
@@ -512,9 +513,41 @@ def main_loop():
             window_desktop = None
 
         if DESKTOP_MODE is not None:
-            window_desktop = cv2.resize(window_desktop, (2400, 1200))
+            # window_desktop = cv2.resize(window_desktop, (2400, 1200))
+            cv2.namedWindow('window_desktop', cv2.WINDOW_NORMAL)
+            cv2.setWindowProperty('window_desktop', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
         
+        if args.use_server:
+            if DESKTOP_MODE == 'NORM':
+                if SERVER_MODE is None:
+                    background = np.ones((256, 256, 3), dtype=np.float32) * 255
+                else:
+                    background = render(extrinsic, intrinsic)
+                if mask is None:
+                    window_server = background
+                else:
+                    window_server = np.uint8(mask * render_norm + (1 - mask) * background)
+            elif DESKTOP_MODE == 'TEXTURE':
+                if SERVER_MODE is None:
+                    background = np.ones((256, 256, 3), dtype=np.float32) * 255
+                else:
+                    background = render(extrinsic, intrinsic)
+                if mask is None:
+                    window_server = background
+                else:
+                    window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
+            else:
+                if render_norm is not None:
+                    window_server = np.uint8(render_norm)      
+            
+            # yield window_desktop, window_server
+            (flag, encodedImage) = cv2.imencode(".jpg", window_server[:, :, ::-1])
+            if not flag:
+                continue
+            yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
+                bytearray(encodedImage) + b'\r\n')
+
         key = cv2.waitKey(1)
         if key == ord('q'):
             DESKTOP_MODE = 'SEGM'
@@ -527,10 +560,10 @@ def main_loop():
 
         elif key == ord('a'):
             SERVER_MODE = 'SEGM'
-        elif key == ord('s'):
-            SERVER_MODE = 'NORM'
-        elif key == ord('d'):
-            SERVER_MODE = 'TEXTURE'
+        # elif key == ord('s'):
+        #     SERVER_MODE = 'NORM'
+        # elif key == ord('d'):
+        #     SERVER_MODE = 'TEXTURE'
         elif key == ord('f'):
             SERVER_MODE = None
 
@@ -547,30 +580,7 @@ def main_loop():
         elif key == ord('n'):
             VIEW_MODE = 'LOAD'
         
-        if args.use_server:
-            if SERVER_MODE == 'NORM':
-                background = render(extrinsic, intrinsic)
-                if mask is None:
-                    window_server = background
-                else:
-                    window_server = np.uint8(mask * render_norm + (1 - mask) * background)
-            elif SERVER_MODE == 'TEXTURE':
-                background = render(extrinsic, intrinsic)
-                if mask is None:
-                    window_server = background
-                else:
-                    window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
-            else:
-                if render_norm is not None:
-                    window_server = np.uint8(render_norm)      
-            
-            # yield window_desktop, window_server
-            (flag, encodedImage) = cv2.imencode(".jpg", window_server[:, :, ::-1])
-            if not flag:
-                continue
-            yield(b'--frame\r\n' b'Content-Type: image/jpeg\r\n\r\n' + 
-                bytearray(encodedImage) + b'\r\n')
-
+        
 
 if __name__ == '__main__':
     if args.use_server:
@@ -578,15 +588,6 @@ if __name__ == '__main__':
         ## Flask related
         ########################################
         app = Flask(__name__)
-
-        def img_base64(img_path):
-            with open(img_path,"rb") as f:
-                data = f.read()
-                print("data:", getsizeof(data))
-                assert data[-2:] == b'\xff\xd9'
-                base64_str = b64encode(data).decode('utf-8')
-                print("base64:", getsizeof(base64_str))
-            return base64_str
 
         @app.route("/")
         def index():
@@ -604,128 +605,3 @@ if __name__ == '__main__':
         print('start main_loop.')
         for _ in main_loop():
             pass
-
-# @torch.no_grad()
-# def main_loop():
-#     for data_dict in tqdm.tqdm(loader):
-#         # for visualization on the ubuntu main screen
-#         input4c = data_dict["segm"].cpu().numpy()[0].transpose(1, 2, 0) # [512, 512, 4]
-#         input = (input4c[:, :, 0:3] * 0.5) + 0.5
-#         segmentation = (input4c[:, :, 0:3] * input4c[:, :, 3:4] * 0.5) + 0.5
-        
-#         render_norm = data_dict["render_norm"] # [256, 256, 3] RGB
-#         render_tex = data_dict["render_tex"] # [256, 256, 3] RGB
-#         mask = data_dict["mask"]
-#         extrinsic = data_dict["extrinsic"]
-#         intrinsic = data_dict["intrinsic"]
-        
-#         if DESKTOP_MODE == 'SEGM':
-#             window_desktop = np.uint8(np.hstack([
-#                 input * 255, 
-#                 segmentation * 255
-#                 ])) # RGB
-#         elif DESKTOP_MODE == 'NORM':
-#             if render_norm is None:
-#                 render_norm = np.zeros((512, 512, 3), dtype=np.float32)
-#             window_desktop = np.uint8(np.hstack([
-#                 input * 255, 
-#                 cv2.resize(render_norm, (512, 512))
-#                 ])) # RGB
-#         elif DESKTOP_MODE == 'TEXTURE':
-#             if render_tex is None:
-#                 render_tex = np.zeros((512, 512, 3), dtype=np.float32)
-#             window_desktop = np.uint8(np.hstack([
-#                 input * 255, 
-#                 cv2.resize(render_tex, (512, 512))
-#                 ])) # RGB
-#         else:
-#             window_desktop = None
-
-#         # if SERVER_MODE == 'NORM':
-#         #     background = scene.render(extrinsic, intrinsic)
-#         #     if mask is None:
-#         #         window_server = background
-#         #     else:
-#         #         window_server = np.uint8(mask * render_norm + (1 - mask) * background)
-#         # elif SERVER_MODE == 'TEXTURE':
-#         #     background = scene.render(extrinsic, intrinsic)
-#         #     if mask is None:
-#         #         window_server = background
-#         #     else:
-#         #         window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
-#         # else:
-#         #     window_server = None
-        
-#         yield window_desktop
-        
-
-# # access server:
-# # http://localhost:9999/scripts/unit_tests/test_server.html
-# if __name__ == '__main__':
-#     import asyncio
-#     import websockets
-#     import threading
-#     import time
-#     import random
-#     import glob
-#     from base64 import b64encode
-#     from sys import getsizeof
-#     from io import BytesIO
-#     from PIL import Image
-
-
-#     def img_base64(img_path):
-#         with open(img_path,"rb") as f:
-#             data = f.read()
-#             print("data:", getsizeof(data))
-#             assert data[-2:] == b'\xff\xd9'
-#             base64_str = b64encode(data).decode('utf-8')
-#             print("base64:", getsizeof(base64_str))
-#         return base64_str
-
-#     async def send(client, data):
-#         await client.send(data)
-
-#     async def handler(client, path):
-#         # Register.
-#         print("Websocket Client Connected.", client)
-#         clients.append(client)
-#         while True:
-#             try:
-#                 # print("ping", client)
-#                 pong_waiter = await client.ping()
-#                 await pong_waiter
-#                 # print("pong", client)
-#                 time.sleep(3)
-#             except Exception as e:
-#                 clients.remove(client)
-#                 print("Websocket Client Disconnected", client)
-#                 break
-
-#     clients = []
-#     start_server = websockets.serve(handler, "192.168.1.232", 5555)
-
-#     asyncio.get_event_loop().run_until_complete(start_server)
-#     threading.Thread(target = asyncio.get_event_loop().run_forever).start()
-
-#     print(f"Socket Server Running on 192.168.1.232:5555. Starting main loop.")
-            
-#     for window_desktop in main_loop():
-#         # message_clients = clients.copy()
-#         # for client in message_clients:
-#         #     pil_img = Image.fromarray(window_server)
-#         #     buff = BytesIO()
-#         #     pil_img.save(buff, format="JPEG")
-#         #     data = b64encode(buff.getvalue()).decode("utf-8")
-
-#         #     print("Sending data to client")
-#         #     try:
-#         #         asyncio.run(send(client, data))
-#         #     except:
-#         #         # Clients might have disconnected during the messaging process,
-#         #         # just ignore that, they will have been removed already.
-#         #         pass
-#         window_desktop = cv2.resize(window_desktop, (0, 0), fx=2, fy=2)
-#         cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
-#         cv2.waitKey(1)
-        

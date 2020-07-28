@@ -98,11 +98,11 @@ class MonoPortScene:
         self.vert_data, self.uv_data, self.texture_image = _load_grass()
         self.intrinsic = _load_intrinsic()
 
-        create_opengl_context(size[0], size[1])
-        self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
-        self.renderer.set_attrib(0, self.vert_data)
-        self.renderer.set_attrib(1, self.uv_data)
-        self.renderer.set_texture('TargetTexture', self.texture_image)
+        # create_opengl_context(size[0], size[1])
+        # self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
+        # self.renderer.set_attrib(0, self.vert_data)
+        # self.renderer.set_attrib(1, self.uv_data)
+        # self.renderer.set_texture('TargetTexture', self.texture_image)
 
         self.extrinsic = np.array([
             [1.0, 0.0, 0.0, 0.0],
@@ -159,6 +159,6 @@ if __name__ == '__main__':
     for _ in tqdm.tqdm(range(10000)):
         extrinsic, intrinsic = scene.update_camera()
         background = scene.render(extrinsic, intrinsic)
-        print (extrinsic)
+        # print (extrinsic)
         cv2.imshow('scene', background)
         cv2.waitKey(15)
