@@ -1,5 +1,5 @@
 python RTL/main.py \
-    --image_folder "/home/rui/local/projects/PIFu-RealTime/zenTelePort/data/recording/test" \
+    --camera \
     --use_server \
     --loop \
     -- \

@@ -36,10 +36,10 @@ from recon import pifu_calib, forward_vertices
 ########################################
 ## Global Control
 ########################################
-DESKTOP_MODE = 'NORM'
-# assert DESKTOP_MODE in ['SEGM', 'NORM', 'TEXURE']
+DESKTOP_MODE = 'TEXTURE_NORM'
+# assert DESKTOP_MODE in ['SEGM', 'NORM', 'TEXTURE', 'TEXTURE_NORM']
 
-SERVER_MODE = None
+SERVER_MODE = 'TEXTURE'
 # assert SERVER_MODE in ['NORM', 'TEXTURE']
 
 VIEW_MODE = 'AUTO'
@@ -293,13 +293,13 @@ def update_camera():
         ], dtype=np.float32)
         
     if VIEW_MODE == 'FRONT':
-        yaw, pitch = 35, 0  
+        yaw, pitch = 20, 0  
     elif VIEW_MODE == 'BACK':
-        yaw, pitch = 35, 180  
+        yaw, pitch = 20, 180  
     elif VIEW_MODE == 'LEFT':
-        yaw, pitch = 35, 90   
+        yaw, pitch = 20, 90   
     elif VIEW_MODE == 'RIGHT':
-        yaw, pitch = 35, 270
+        yaw, pitch = 20, 270
     elif VIEW_MODE == 'AUTO':
         extrinsic, intrinsic = scene.update_camera(load=False)
         return extrinsic, intrinsic
@@ -370,7 +370,7 @@ processors=[
         "feat_tensor_C": netC.filter(
             data_dict["input_netC"].to(cuda_backbone_C, non_blocking=True),
             feat_prior=data_dict["feat_tensor_G"][-1][-1]) \
-                if (netC is not None) and (DESKTOP_MODE == 'TEXTURE' or SERVER_MODE == 'TEXTURE')  else None
+                if (netC is not None) and ('TEXTURE' in DESKTOP_MODE or 'TEXTURE' in SERVER_MODE)  else None
         }, 
 
     # move feature to cuda_recon device
@@ -419,7 +419,7 @@ processors=[
             data_dict["Y"],
             data_dict["Z"],
             data_dict["calib_tensor"],
-            data_dict["norm"]) if (DESKTOP_MODE == 'NORM' or SERVER_MODE == 'NORM')  else None
+            data_dict["norm"]) if ('NORM' in DESKTOP_MODE or 'NORM' in SERVER_MODE)  else None
         },  
 
     # pifu render texture
@@ -509,6 +509,15 @@ def main_loop():
                 input * 255, 
                 cv2.resize(render_tex, (512, 512))
                 ])) # RGB
+        elif DESKTOP_MODE == 'TEXTURE_NORM':
+            if render_tex is None:
+                render_tex = np.ones((256, 256, 3), dtype=np.float32) * 255
+            if render_norm is None:
+                render_norm = np.ones((256, 256, 3), dtype=np.float32) * 255
+            window_desktop = np.uint8(np.vstack([
+                render_tex,
+                render_norm
+                ])) # RGB
         else:
             window_desktop = None
 
@@ -519,20 +528,14 @@ def main_loop():
             cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
         
         if args.use_server:
-            if DESKTOP_MODE == 'NORM':
-                if SERVER_MODE is None:
-                    background = np.ones((256, 256, 3), dtype=np.float32) * 255
-                else:
-                    background = render(extrinsic, intrinsic)
+            if SERVER_MODE == 'NORM':
+                background = render(extrinsic, intrinsic)
                 if mask is None:
                     window_server = background
                 else:
                     window_server = np.uint8(mask * render_norm + (1 - mask) * background)
-            elif DESKTOP_MODE == 'TEXTURE':
-                if SERVER_MODE is None:
-                    background = np.ones((256, 256, 3), dtype=np.float32) * 255
-                else:
-                    background = render(extrinsic, intrinsic)
+            elif SERVER_MODE == 'TEXTURE':
+                background = render(extrinsic, intrinsic)
                 if mask is None:
                     window_server = background
                 else:
@@ -556,14 +559,14 @@ def main_loop():
         elif key == ord('e'):
             DESKTOP_MODE = 'TEXTURE'
         elif key == ord('r'):
-            DESKTOP_MODE = None
+            DESKTOP_MODE = 'TEXTURE_NORM'
 
-        elif key == ord('a'):
-            SERVER_MODE = 'SEGM'
-        # elif key == ord('s'):
-        #     SERVER_MODE = 'NORM'
-        # elif key == ord('d'):
-        #     SERVER_MODE = 'TEXTURE'
+        # elif key == ord('a'):
+        #     SERVER_MODE = 'SEGM'
+        elif key == ord('s'):
+            SERVER_MODE = 'NORM'
+        elif key == ord('d'):
+            SERVER_MODE = 'TEXTURE'
         elif key == ord('f'):
             SERVER_MODE = None
 

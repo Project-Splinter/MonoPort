@@ -115,7 +115,7 @@ class MonoPortScene:
     def update_camera(self, load=False):
         if load == False:
             if self.step < 3600000:
-                yaw = 35
+                yaw = 20
                 pitch = self.step
             else:
                 yaw = self.step % 180
