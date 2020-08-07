@@ -602,7 +602,7 @@ if __name__ == '__main__':
                 mimetype = "multipart/x-mixed-replace; boundary=frame")
 
         # start the flask app
-        app.run(host="192.168.1.232", port="5555", debug=True,
+        app.run(host="192.168.1.53", port="5555", debug=True,
             threaded=True, use_reloader=False)
     else:
         print('start main_loop.')
