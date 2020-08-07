@@ -5,6 +5,16 @@ Intro.
 ## How to run our Siggraph RTL Demo
 
 #### 0. Setup the repo (TODO: add dependences into setup.py)
+First you need to download the model into './data' folder:
+```
+mkdir -p data/PIFu/
+cd data/PIFu/
+wget "https://drive.google.com/uc?export=download&id=1zEmVXG2VHy0MMzngcRshB4D8Sr_oLHsm" -O net_G
+wget "https://drive.google.com/uc?export=download&id=1V83B6GDIjYMfHdpg-KcCSAPgHxpafHgd" -O net_C
+cd ../../
+```
+
+Then setup this repo:
 ```
 python setup.py develop
 ```
