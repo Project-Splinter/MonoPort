@@ -1,8 +1,10 @@
 # Monoport
 
-## How to run Siggraph RTL Demo
+Intro.
 
-#### 0. Setup the repo
+## How to run our Siggraph RTL Demo
+
+#### 0. Setup the repo (TODO: add dependences into setup.py)
 ```
 python setup.py develop
 ```
@@ -44,4 +46,4 @@ python RTL/VRweb/server_webxr.py --port 8000 --cert ruilong
 
 Then you can access `https://www/liruilong.codes:8000` from the app **XRViewer**, and click the button **Enter WebXR** in the page. From that moment, your mobile device would become a camera in our VR scene, and you can move your mobile device around to observe the reconstructed human.
 
-
+## Citation
