@@ -64,6 +64,10 @@ parser.add_argument(
     '--loop', action="store_true")
 parser.add_argument(
     '--use_server', action="store_true")
+parser.add_argument(
+    '--ip', type=str, default="192.168.1.53")
+parser.add_argument(
+    '--port', type=str, default="5555")
 
 argv = sys.argv[1:sys.argv.index('--')]
 args = parser.parse_args(argv)
@@ -186,7 +190,7 @@ reconEngine = Seg3dLossless(
     b_max=b_max.unsqueeze(0).numpy(),
     resolutions=resolutions,
     balance_value=0.5,
-    use_cuda_impl=True,
+    use_cuda_impl=False,
     faster=True).to(cuda_recon)
 
 
@@ -602,7 +606,7 @@ if __name__ == '__main__':
                 mimetype = "multipart/x-mixed-replace; boundary=frame")
 
         # start the flask app
-        app.run(host="192.168.1.53", port="5555", debug=True,
+        app.run(host=args.ip, port=args.port, debug=True,
             threaded=True, use_reloader=False)
     else:
         print('start main_loop.')
