@@ -5,9 +5,9 @@
 
 Existing volumetric capture systems require many cameras and lengthy post processing. We introduce the first system that can capture a completely clothed human body (including the back) using a single RGB webcam and in real time. Our deep-learning-based approach enables new possibilities for low-cost and consumer-accessible immersive teleportation.
 
-<center>
+<p align='center'>
     <img src='figs/rtl.jpg'/>
-</center>
+</p>
 
 ## Requirements
 - Python 3.7
@@ -63,10 +63,9 @@ If everything goes well, you should be able to see those logs after waiting for 
 #### 2. Access the server to start.
 Open the page `http://<YOUR_IP_ADDRESS>:5555/` on a web browser from any device (Desktop/IPad/IPhone), You should be able to see the **MonoPort VR Demo** page on that device, and at the same time you should be able to see the a screen poping up on your desktop, showing the reconstructed normal and texture image.
 
-<center>
-    <img width=66% src='figs/web.png'/>
-    <img width=30% src='figs/twoside.png'/>
-</center>
+<p align='center'>
+    <img src='figs/twoside.png'/>
+</p>
 
 #### 3. Play with VR demo. (TODO: bc of the https cert, this step is not easy for the public to use)
 As a VR prototype, this system also allow users to control the camera in the **MonoPort VR Demo** using the sensor from IPad/IPhone. To achieve that, you need to start another server :
@@ -78,7 +77,7 @@ Then you can access `https://www/liruilong.codes:8000` from the app **XRViewer**
 
 ## Contributors
 
-MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20)](http://xiuyuliang.cn/monoport/), authored by Ruilong Li*([@liruilong940607](https://github.com/liruilong940607)), Yuliang Xiu*([@yuliangxiu](https://github.com/YuliangXiu)), Shunsuke Saito([@shunsukesaito](https://github.com/shunsukesaito)), Zeng Huang([@ImaginationZ](https://github.com/ImaginationZ)) and Kyle Olszewski([@kyleolsz](https://github.com/kyleolsz)), Hao Li is the corresponding author.
+MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20)](http://xiuyuliang.cn/monoport/), authored by Ruilong Li*([@liruilong940607](https://github.com/liruilong940607)), Yuliang Xiu*([@yuliangxiu](https://github.com/YuliangXiu)), Shunsuke Saito([@shunsukesaito](https://github.com/shunsukesaito)), Zeng Huang([@ImaginationZ](https://github.com/ImaginationZ)) and Kyle Olszewski([@kyleolsz](https://github.com/kyleolsz)), [Hao Li](https://www.hao-li.com/) is the corresponding author.
 
 
 ## Citation
@@ -114,6 +113,8 @@ Learning PIFu in canonical space for animatable avatar generation!
 
 They extend PIFu to RGBD + introduce "PIFusion" utilizing PIFu reconstruction for non-rigid fusion.
 
-For commercial queries, please contact:
+
+----------
+### For commercial queries, please contact:
 
 Hao Li: hao@hao-li.com ccto: ruilongl@usc.edu
