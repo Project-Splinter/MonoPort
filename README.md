@@ -1,7 +1,7 @@
 # [Monoport: Monocular Volumetric Human Teleportation (SIGGRAPH 2020 Real-Time Live)](http://xiuyuliang.cn/monoport/)
 
 ### Time: Tuesday, 25 August 2020 (Pacific Time Zone)
-[![report](https://img.shields.io/badge/Paper-Arxiv-red)](https://arxiv.org/abs/2007.13988) [![homepage](https://img.shields.io/badge/Project-Homepage-green)](http://xiuyuliang.cn/monoport/) [![report](https://img.shields.io/badge/Demo-Youtube-yellow)](https://youtu.be/fQDsYVE7GtQ)
+[![report](https://img.shields.io/badge/Paper-Arxiv-red)](https://arxiv.org/abs/2007.13988) [![homepage](https://img.shields.io/badge/Project-Homepage-green)](https://project-splinter.github.io/) [![report](https://img.shields.io/badge/Demo-Youtube-yellow)](https://youtu.be/fQDsYVE7GtQ)
 
 Existing volumetric capture systems require many cameras and lengthy post processing. We introduce the first system that can capture a completely clothed human body (including the back) using a single RGB webcam and in real time. Our deep-learning-based approach enables new possibilities for low-cost and consumer-accessible immersive teleportation.
 
@@ -77,7 +77,7 @@ Then you can access `https://www/liruilong.codes:8000` from the app **XRViewer**
 
 ## Contributors
 
-MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20)](http://xiuyuliang.cn/monoport/), authored by Ruilong Li*([@liruilong940607](https://github.com/liruilong940607)), Yuliang Xiu*([@yuliangxiu](https://github.com/YuliangXiu)), Shunsuke Saito([@shunsukesaito](https://github.com/shunsukesaito)), Zeng Huang([@ImaginationZ](https://github.com/ImaginationZ)) and Kyle Olszewski([@kyleolsz](https://github.com/kyleolsz)), [Hao Li](https://www.hao-li.com/) is the corresponding author.
+MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20)](https://project-splinter.github.io/), authored by Ruilong Li*([@liruilong940607](https://github.com/liruilong940607)), Yuliang Xiu*([@yuliangxiu](https://github.com/YuliangXiu)), Shunsuke Saito([@shunsukesaito](https://github.com/shunsukesaito)), Zeng Huang([@ImaginationZ](https://github.com/ImaginationZ)) and Kyle Olszewski([@kyleolsz](https://github.com/kyleolsz)), [Hao Li](https://www.hao-li.com/) is the corresponding author.
 
 
 ## Citation
