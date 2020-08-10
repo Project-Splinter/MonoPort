@@ -14,7 +14,7 @@ from monoport.lib.mesh_util import load_obj_mesh
 
 
 _RTL_DATA_FOLDER = os.path.join(
-    os.path.dirname(__file__), '../data/RTL/')
+    os.path.dirname(__file__))
 
 
 def _load_grass(grass_size=3.0, grass_center=np.array([0, -0.9, 0])):

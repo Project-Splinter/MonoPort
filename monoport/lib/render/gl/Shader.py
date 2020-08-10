@@ -69,7 +69,7 @@ class Shader(GLObject):
     def _find_shader_file(name):
         import os
         gl_folder = os.path.dirname(os.path.abspath(__file__))
-        glsl_file = os.path.join(gl_folder, 'data', name)
+        glsl_file = os.path.join(gl_folder, 'shaders', name)
         return glsl_file
 
     def release(self):

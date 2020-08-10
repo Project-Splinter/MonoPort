@@ -1,0 +1,16 @@
+numpy
+torch
+torchvision
+Pillow
+flask 
+scikit-image
+opencv-python
+tqdm
+imageio
+yacs
+pyopengl
+imageio-ffmpeg
+human-det @ git+https://github.com/Project-Splinter/human_det
+human-inst-seg @ git+https://github.com/Project-Splinter/human_inst_seg
+implicit-seg @ git+https://github.com/Project-Splinter/ImplicitSegCUDA
+streamer-pytorch @ git+https://github.com/Project-Splinter/streamer_pytorch
