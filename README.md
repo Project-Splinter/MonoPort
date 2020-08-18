@@ -3,11 +3,11 @@
 ### Time: Tuesday, 25 August 2020 (Pacific Time Zone)
 [![report](https://img.shields.io/badge/Paper-Arxiv-red)](https://arxiv.org/abs/2007.13988) [![homepage](https://img.shields.io/badge/Project-Homepage-green)](https://project-splinter.github.io/) [![report](https://img.shields.io/badge/Demo-Youtube-yellow)](https://youtu.be/fQDsYVE7GtQ)
 
-Existing volumetric capture systems require many cameras and lengthy post processing. We introduce the first system that can capture a completely clothed human body (including the back) using a single RGB webcam and in real time. Our deep-learning-based approach enables new possibilities for low-cost and consumer-accessible immersive teleportation.
-
 <p align='center'>
     <img src='figs/rtl.jpg'/>
 </p>
+
+Our volumetric capture system captures a completely clothed human body (including the back) using **a single RGB webcam** and in real time. 
 
 ## Requirements
 - Python 3.7
@@ -17,24 +17,22 @@ Existing volumetric capture systems require many cameras and lengthy post proces
 - [streamer_pytorch](https://github.com/Project-Splinter/streamer_pytorch)
 - [human_det](https://github.com/Project-Splinter/human_det)
 
+**Note**: The last four dependencies are also developed by our team, and are all in active maintainess. If you meet any installation problems specificly regarding to those tools, we recommand you to file the issue in the corresponded repo. (You don't need to install them manally here as they are included in the requirements.txt)
+
 ## How to run our Siggraph RTL Demo
 
-#### 0. Setup the repo
-First you need to download the model into './data' folder:
+#### 1. Setup the repo
+First you need to download the model:
 ```
-mkdir -p data/PIFu/
-cd data/PIFu/
-wget "https://drive.google.com/uc?export=download&id=1zEmVXG2VHy0MMzngcRshB4D8Sr_oLHsm" -O net_G
-wget "https://drive.google.com/uc?export=download&id=1V83B6GDIjYMfHdpg-KcCSAPgHxpafHgd" -O net_C
-cd ../../
+sh scripts/download_model.sh
 ```
 
-Then setup this repo:
+Then install all the dependencies:
 ```
 pip install -r requirements.txt
 ```
 
-#### 1. Start the main process as a server. 
+#### 2. Start the main process as a server. 
 ```
 # if you want to use the input from a webcam:
 python RTL/main.py --use_server --ip <YOUR_IP_ADDRESS> --port 5555 --camera -- netG.ckpt_path ./data/PIFu/net_G netC.ckpt_path ./data/PIFu/net_C
@@ -66,14 +64,6 @@ Open the page `http://<YOUR_IP_ADDRESS>:5555/` on a web browser from any device 
 <p align='center'>
     <img src='figs/twoside.png'/>
 </p>
-
-#### 3. Play with VR demo. (TODO: bc of the https cert, this step is not easy for the public to use)
-As a VR prototype, this system also allow users to control the camera in the **MonoPort VR Demo** using the sensor from IPad/IPhone. To achieve that, you need to start another server :
-```
-python RTL/VRweb/server_webxr.py --port 8000 --cert ruilong
-```
-
-Then you can access `https://www/liruilong.codes:8000` from the app **XRViewer**, and click the button **Enter WebXR** in the page. From that moment, your mobile device would become a camera in our VR scene, and you can move your mobile device around to observe the reconstructed human.
 
 ## Contributors
 
