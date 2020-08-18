@@ -529,7 +529,7 @@ def main_loop():
         if DESKTOP_MODE is not None:
             # window_desktop = cv2.resize(window_desktop, (2400, 1200))
             cv2.namedWindow('window_desktop', cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty('window_desktop', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            # cv2.setWindowProperty('window_desktop', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
         
         if args.use_server:
