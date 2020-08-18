@@ -81,21 +81,20 @@ MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20
   }
   
 @inproceedings{10.1145/3407662.3407756,
-author = {Li, Ruilong and Olszewski, Kyle and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Li, Hao},
-title = {Volumetric Human Teleportation},
-year = {2020},
-isbn = {9781450380607},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-url = {https://doi.org/10.1145/3407662.3407756},
-doi = {10.1145/3407662.3407756},
-abstract = {Existing volumetric capture systems require many cameras and lengthy post processing. We introduce the first system that can capture a completely clothed human body (including the back) using a single RGB webcam and in real time. Our deep-learning-based approach enables new possibilities for low-cost and consumeraccessible immersive teleportation.},
-booktitle = {ACM SIGGRAPH 2020 Real-Time Live!},
-articleno = {9},
-numpages = {1},
-location = {Virtual Event, USA},
-series = {SIGGRAPH 2020}
-}
+    author = {Li, Ruilong and Olszewski, Kyle and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Li, Hao},
+    title = {Volumetric Human Teleportation},
+    year = {2020},
+    isbn = {9781450380607},
+    publisher = {Association for Computing Machinery},
+    address = {New York, NY, USA},
+    url = {https://doi.org/10.1145/3407662.3407756},
+    doi = {10.1145/3407662.3407756},
+    booktitle = {ACM SIGGRAPH 2020 Real-Time Live!},
+    articleno = {9},
+    numpages = {1},
+    location = {Virtual Event, USA},
+    series = {SIGGRAPH 2020}
+  }
 ```
 
 ## Relevant Works
