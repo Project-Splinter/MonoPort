@@ -103,6 +103,11 @@ Learning PIFu in canonical space for animatable avatar generation!
 
 They extend PIFu to RGBD + introduce "PIFusion" utilizing PIFu reconstruction for non-rigid fusion.
 
+## Relavant applications
+
+**[Real-time VR PhD Defense](https://www.youtube.com/watch?v=RhWTqjVekVU&feature=youtu.be)**  
+Dr. [Zeng Huang](https://zeng.science/) defensed his PhD virtually using our system. [(Media in Chinese)](https://mp.weixin.qq.com/s/Bl0HohrSVzaVPF0EHzuIWw)
+
 
 ----------
 ### For commercial queries, please contact:
