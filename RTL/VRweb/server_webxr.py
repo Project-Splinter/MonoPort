@@ -67,5 +67,5 @@ if __name__ == '__main__':
 
     http_server.listen(args.port)
     if args.cert == 'ruilong':
-        print (f'server start at: https://www/liruilong.codes:{args.port}')
+        print (f'server start at: https://www:liruilong.codes:{args.port}')
     tornado.ioloop.IOLoop.instance().start()

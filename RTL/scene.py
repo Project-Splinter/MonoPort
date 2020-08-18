@@ -6,6 +6,7 @@ import json
 
 from monoport.lib.render.gl.glcontext import create_opengl_context
 from monoport.lib.render.gl.AlbedoRender import AlbedoRender
+from monoport.lib.render.gl.FloorBoardRender import FloorBoardRender
 from monoport.lib.render.BaseCamera import BaseCamera
 from monoport.lib.render.PespectiveCamera import PersPectiveCamera
 from monoport.lib.render.CameraPose import CameraPose
@@ -42,11 +43,32 @@ def _load_grass(grass_size=3.0, grass_center=np.array([0, -0.9, 0])):
     return vert_data, uv_data, texture_image
     
 
-def _load_intrinsic(near=0.0, far=10.0, scale=2.0):
+def _load_board(board_center=np.array([0, -0.9, 0.0])):
+    mesh_file = os.path.join(
+            _RTL_DATA_FOLDER, 
+            'board/board.obj')
+    text_file = os.path.join(
+        _RTL_DATA_FOLDER,
+        'board/N6ZUU.png')
+    vertices, faces, textures, face_textures = load_obj_mesh(
+        mesh_file, with_normal=False, with_texture=True)
+    vertices += board_center
+
+    texture_image = cv2.imread(text_file)
+    texture_image = cv2.cvtColor(texture_image, cv2.COLOR_BGR2RGB)
+
+    # Here we pack the vertex data needed for the render
+    vert_data = vertices[faces.reshape([-1])]
+    uv_data = textures[face_textures.reshape([-1])]
+    return vert_data, uv_data, texture_image
+
+
+def _load_intrinsic(near=0.0, far=100.0, scale=4):
     intrinsic_cam = BaseCamera()
     intrinsic_cam.near = near
     intrinsic_cam.far = far
-    intrinsic_cam.set_parameters(scale, scale)
+    intrinsic_cam.aspect_ratio = 16./9.
+    intrinsic_cam.set_parameters(scale)
     return intrinsic_cam.get_projection_mat()
 
 
@@ -56,6 +78,7 @@ def _load_extrinsic():
     with open(path, 'r') as f:
         extrinsic = json.load(f)['data']
     extrinsic = np.array(extrinsic).reshape(4, 4).T
+    
     return extrinsic
 
 
@@ -94,12 +117,13 @@ def make_rotate(rx, ry, rz):
 
 
 class MonoPortScene:
-    def __init__(self, size=(512, 512)):
-        self.vert_data, self.uv_data, self.texture_image = _load_grass()
+    def __init__(self, size=(1600, 900)):
+        #self.vert_data, self.uv_data, self.texture_image = _load_grass()
+        self.vert_data, self.uv_data, self.texture_image = _load_board()
         self.intrinsic = _load_intrinsic()
 
         # create_opengl_context(size[0], size[1])
-        # self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
+        # self.renderer = FloorBoardRender(width=size[0], height=size[1], multi_sample_rate=4)
         # self.renderer.set_attrib(0, self.vert_data)
         # self.renderer.set_attrib(1, self.uv_data)
         # self.renderer.set_texture('TargetTexture', self.texture_image)
@@ -114,11 +138,11 @@ class MonoPortScene:
 
     def update_camera(self, load=False):
         if load == False:
-            if self.step < 3600000:
-                yaw = 20
-                pitch = self.step
+            if self.step < 0:
+                yaw = 10
+                pitch = self.step % 360
             else:
-                yaw = self.step % 180
+                yaw = self.step % 90
                 pitch = 0
 
             R = np.matmul(
@@ -157,8 +181,7 @@ if __name__ == '__main__':
     scene = MonoPortScene()
     
     for _ in tqdm.tqdm(range(10000)):
-        extrinsic, intrinsic = scene.update_camera()
+        extrinsic, intrinsic = scene.update_camera(False)
         background = scene.render(extrinsic, intrinsic)
-        # print (extrinsic)
         cv2.imshow('scene', background)
         cv2.waitKey(15)

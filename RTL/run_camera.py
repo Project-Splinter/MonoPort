@@ -98,7 +98,7 @@ def main_loop():
         window = np.uint8(window[:, :, ::-1] * 255) # To BGR
         window = cv2.rectangle(cv2.UMat(window), (x1, y1), (x2, y2), (255, 0, 0), thickness=3)
 
-        window = cv2.resize(window, (0, 0), fx=3, fy=3)
+        window = cv2.resize(window, (0, 0), fx=2, fy=2)
         cv2.imshow('segmenation', window)
         cv2.waitKey(1)
         

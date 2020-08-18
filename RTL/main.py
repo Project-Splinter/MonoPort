@@ -22,6 +22,7 @@ from monoport.lib.modeling.MonoPortNet import PIFuNetG, PIFuNetC
 from monoport.lib.modeling.geometry import orthogonal, perspective
 from monoport.lib.render.gl.glcontext import create_opengl_context
 from monoport.lib.render.gl.AlbedoRender import AlbedoRender
+from monoport.lib.render.gl.FloorBoardRender import FloorBoardRender
 
 import streamer_pytorch as streamer
 import human_inst_seg
@@ -32,17 +33,18 @@ from dataloader import DataLoader
 from scene import MonoPortScene, make_rotate
 from recon import pifu_calib, forward_vertices
 
+from cfg_ppt import cfg_ppt
 
 ########################################
 ## Global Control
 ########################################
-DESKTOP_MODE = 'TEXTURE_NORM'
+DESKTOP_MODE = ''
 # assert DESKTOP_MODE in ['SEGM', 'NORM', 'TEXTURE', 'TEXTURE_NORM']
 
 SERVER_MODE = 'TEXTURE'
 # assert SERVER_MODE in ['NORM', 'TEXTURE']
 
-VIEW_MODE = 'AUTO'
+VIEW_MODE = 'FRONT'
 # assert VIEW_MODE in ['FRONT', 'BACK', 'LEFT', 'RIGHT', 'AUTO', 'LOAD']
 
 ########################################
@@ -181,8 +183,8 @@ def query_func(points, im_feat_list, calib_tensor):
         calibs=calib_tensor)[0]
     return preds
 
-b_min = torch.tensor([-1.0, -1.0, -1.0]).float()
-b_max = torch.tensor([ 1.0,  1.0,  1.0]).float()
+b_min = torch.tensor([-9/16, -1.0, -1.0]).float()
+b_max = torch.tensor([9/16,  1.0,  1.0]).float()
 resolutions = [16+1, 32+1, 64+1, 128+1, 256+1]
 reconEngine = Seg3dLossless(
     query_func=query_func, 
@@ -212,7 +214,7 @@ mat_color = mat.to(cuda_color)
 def colorization(netC, feat_tensor_C, X, Y, Z, calib_tensor, norm=None):
     if X is None:
         return None
-
+    
     device = calib_tensor.device
     global canvas
     # use normal as color
@@ -275,10 +277,9 @@ def visulization(render_norm, render_tex=None):
             reference[:, :, 1] == 255),
         reference[:, :, 2] == 255,
     ).reshape(render_size, render_size, 1)
-    mask = ~bg
+    mask = np.float32(~bg)
 
     return render_norm, render_tex, mask
-
 
 
 ########################################
@@ -305,14 +306,15 @@ def update_camera():
     elif VIEW_MODE == 'RIGHT':
         yaw, pitch = 20, 270
     elif VIEW_MODE == 'AUTO':
-        extrinsic, intrinsic = scene.update_camera(load=False)
-        return extrinsic, intrinsic
+        # extrinsic, intrinsic = scene.update_camera(load=False)
+        # return extrinsic, intrinsic
+        yaw, pitch = cfg_ppt.get_current_yaw_pitch()
     elif VIEW_MODE == 'LOAD':
         extrinsic, intrinsic = scene.update_camera(load=True)
         return extrinsic, intrinsic
     else:
         raise NotImplementedError
-
+    
     intrinsic = scene.intrinsic
     R = np.matmul(
         make_rotate(math.radians(yaw), 0, 0), 
@@ -463,24 +465,24 @@ loader = DataLoader(
 )
 
 
-def main_loop():
+def main_loop(width=1600, height=900):
     global DESKTOP_MODE, SERVER_MODE, VIEW_MODE
 
-    window_server = np.ones((256, 256, 3), dtype=np.uint8) * 255
+    window_server = np.ones((height, width, 3), dtype=np.uint8) * 255
     window_desktop = np.ones((512, 1024, 3), dtype=np.uint8) * 255
 
-    create_opengl_context(256, 256)
-    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
+    create_opengl_context(width, height)
+    renderer = FloorBoardRender(width=width, height=height, multi_sample_rate=4)
     renderer.set_attrib(0, scene.vert_data)
     renderer.set_attrib(1, scene.uv_data)
-    renderer.set_texture('TargetTexture', scene.texture_image)
+    renderer.set_texture('TargetTexture', cfg_ppt.current())
 
     def render(extrinsic, intrinsic):
         uniform_dict = {'ModelMat': extrinsic, 'PerspMat': intrinsic}
         renderer.draw(uniform_dict)
-        color = (renderer.get_color() * 255).astype(np.uint8)
-        background = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)
-        background = cv2.resize(background, (256, 256))
+        background = (renderer.get_color()[:, :, 0:3] * 255).astype(np.uint8)
+        # background = cv2.cvtColor(background, cv2.COLOR_RGB2BGR)
+        background = cv2.resize(background, (width, height))
         return background
 
     for data_dict in tqdm.tqdm(loader):
@@ -523,15 +525,31 @@ def main_loop():
                 render_norm
                 ])) # RGB
         else:
-            window_desktop = None
+            window_desktop = np.ones((300, 300, 3), dtype=np.uint8) * 255
 
         if DESKTOP_MODE is not None:
             # window_desktop = cv2.resize(window_desktop, (2400, 1200))
             cv2.namedWindow('window_desktop', cv2.WINDOW_NORMAL)
-            cv2.setWindowProperty('window_desktop', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            # cv2.setWindowProperty('window_desktop', cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
             cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
         
         if args.use_server:
+            if render_tex is None:
+                render_tex = np.ones((256, 256, 3), dtype=np.float32) * 255
+            if render_norm is None:
+                render_norm = np.ones((256, 256, 3), dtype=np.float32) * 255
+            
+            pad_width = (width-height//2)//2
+            if render_norm is not None:
+                render_norm = cv2.resize(render_norm, (height//2, height//2))
+                render_norm = np.pad(render_norm, ((height//2, 0), (pad_width, pad_width), (0, 0)), mode='constant')
+            if render_tex is not None:
+                render_tex = cv2.resize(render_tex, (height//2, height//2))
+                render_tex = np.pad(render_tex, ((height//2, 0), (pad_width, pad_width), (0, 0)), mode='constant')
+            if mask is not None:
+                mask = cv2.resize(mask, (height//2, height//2)).reshape(height//2, height//2, 1)
+                mask = np.pad(mask, ((height//2, 0), (pad_width, pad_width), (0, 0)), mode='constant')
+            
             if SERVER_MODE == 'NORM':
                 background = render(extrinsic, intrinsic)
                 if mask is None:
@@ -545,8 +563,10 @@ def main_loop():
                 else:
                     window_server = np.uint8(mask * render_tex + (1 - mask) * background)  
             else:
-                if render_norm is not None:
-                    window_server = np.uint8(render_norm)      
+                background = render(extrinsic, intrinsic)
+                # if render_norm is not None:
+                #     window_server = np.uint8(render_norm)      
+                window_server = background
             
             # yield window_desktop, window_server
             (flag, encodedImage) = cv2.imencode(".jpg", window_server[:, :, ::-1])
@@ -567,12 +587,12 @@ def main_loop():
 
         # elif key == ord('a'):
         #     SERVER_MODE = 'SEGM'
-        elif key == ord('s'):
+        elif key == ord('s') or key == ord('7'):
             SERVER_MODE = 'NORM'
-        elif key == ord('d'):
+        elif key == ord('d') or key == ord('8'):
             SERVER_MODE = 'TEXTURE'
-        elif key == ord('f'):
-            SERVER_MODE = None
+        elif key == ord('f') or key == ord('1'):
+            SERVER_MODE = ''
 
         elif key == ord('z'):
             VIEW_MODE = 'FRONT'
@@ -587,7 +607,11 @@ def main_loop():
         elif key == ord('n'):
             VIEW_MODE = 'LOAD'
         
-        
+        elif key == ord('j') or key == ord('+') or key == ord('0'):
+            renderer.set_texture('TargetTexture', cfg_ppt.next())
+        elif key == ord('k') or key == ord('-'):
+            renderer.set_texture('TargetTexture', cfg_ppt.last())
+
 
 if __name__ == '__main__':
     if args.use_server:
