@@ -587,6 +587,10 @@ def main_loop():
             VIEW_MODE = 'AUTO'
         elif key == ord('n'):
             VIEW_MODE = 'LOAD'
+
+        elif key == ord('g'):
+            scene.shift_floor()
+
         
         
 

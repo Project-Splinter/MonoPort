@@ -9,7 +9,7 @@
 # Faces: 10752
 #
 ####
-mtllib ./10438_Circular_Grass_Patch_v1_iterations-2.obj.mtl
+mtllib ./grass.mtl
 
 vn 2.459729 0.000001 -5.748931
 v 143.042999 -0.000000 0.151100 0.749020 0.749020 0.749020

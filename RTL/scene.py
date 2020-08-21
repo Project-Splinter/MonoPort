@@ -17,24 +17,24 @@ _RTL_DATA_FOLDER = os.path.join(
     os.path.dirname(__file__))
 
 
-def _load_grass(grass_size=3.0, grass_center=np.array([0, -0.9, 0])):
+def _load_floor(floor_type="grass", floor_size=3.0, floor_center=np.array([0, -0.9, 0])):
     mesh_file = os.path.join(
         _RTL_DATA_FOLDER, 
-        'grass/10438_Circular_Grass_Patch_v1_iterations-2.obj')
+        f'floor/{floor_type}/{floor_type}.obj')
     text_file = os.path.join(
         _RTL_DATA_FOLDER,
-        'grass/10438_Circular_Grass_Patch_v1_Diffuse.jpg')
+        f'floor/{floor_type}/{floor_type}.jpg')
     vertices, faces, normals, faces_normals, textures, face_textures = load_obj_mesh(
         mesh_file, with_normal=True, with_texture=True)
     vertices = vertices[:, [0, 2, 1]]
 
     # change cm to meter
-    vertices = vertices / 150 * grass_size
+    vertices = vertices / 150 * floor_size
     vertices = vertices - vertices.mean(axis=0)
-    vertices += grass_center
+    vertices += floor_center
 
     texture_image = cv2.imread(text_file)
-    texture_image = cv2.cvtColor(texture_image, cv2.COLOR_BGR2RGB)
+    # texture_image = cv2.cvtColor(texture_image, cv2.COLOR_BGR2RGB)
 
     # Here we pack the vertex data needed for the render
     vert_data = vertices[faces.reshape([-1])]
@@ -95,15 +95,15 @@ def make_rotate(rx, ry, rz):
 
 class MonoPortScene:
     def __init__(self, size=(512, 512), debug=False):
-        self.vert_data, self.uv_data, self.texture_image = _load_grass()
+        self.floors = ["carpet", "drum", "grass", "mousemat", "table"]
+        self.vert_data, self.uv_data, self.texture_image = _load_floor()
         self.intrinsic = _load_intrinsic()
 
-        if debug == True:
-            create_opengl_context(size[0], size[1])
-            self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
-            self.renderer.set_attrib(0, self.vert_data)
-            self.renderer.set_attrib(1, self.uv_data)
-            self.renderer.set_texture('TargetTexture', self.texture_image)
+        create_opengl_context(size[0], size[1])
+        self.renderer = AlbedoRender(width=size[0], height=size[1], multi_sample_rate=1)
+        self.renderer.set_attrib(0, self.vert_data)
+        self.renderer.set_attrib(1, self.uv_data)
+        self.renderer.set_texture('TargetTexture', self.texture_image)
 
         self.extrinsic = np.array([
             [1.0, 0.0, 0.0, 0.0],
@@ -112,6 +112,12 @@ class MonoPortScene:
             [0.0, 0.0, 0.0, 1.0],
         ], dtype=np.float32)
         self.step = 0
+
+    def shift_floor(self):
+        self.vert_data, self.uv_data, self.texture_image = _load_floor(floor_type=np.random.choice(self.floors))
+        self.renderer.set_attrib(0, self.vert_data)
+        self.renderer.set_attrib(1, self.uv_data)
+        self.renderer.set_texture('TargetTexture', self.texture_image)
 
     def update_camera(self, load=False):
         if load == False:
