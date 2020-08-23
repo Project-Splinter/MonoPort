@@ -17,6 +17,12 @@ Our volumetric capture system captures a completely clothed human body (includin
 - [streamer_pytorch](https://github.com/Project-Splinter/streamer_pytorch)
 - [human_det](https://github.com/Project-Splinter/human_det)
 
+We tests the demo with 2 GeForce RTX 2080Ti GPUs, the memory usage is as follows (~3.4GB at GPU1, ~9.7GB at GPU2):
+
+<p align='center'>
+    <img src='figs/gpu.png'/>
+</p>
+
 **Note**: The last four dependencies are also developed by our team, and are all in active maintainess. If you meet any installation problems specificly regarding to those tools, we recommand you to file the issue in the corresponded repo. (You don't need to install them manally here as they are included in the requirements.txt)
 
 ## How to run our Siggraph RTL Demo
