@@ -17,7 +17,7 @@ Our volumetric capture system captures a completely clothed human body (includin
 - [streamer_pytorch](https://github.com/Project-Splinter/streamer_pytorch)
 - [human_det](https://github.com/Project-Splinter/human_det)
 
-We tests the demo with 2 GeForce RTX 2080Ti GPUs, the memory usage is as follows (~3.4GB at GPU1, ~9.7GB at GPU2):
+We run the demo with 2 GeForce RTX 2080Ti GPUs, the memory usage is as follows (~3.4GB at GPU1, ~9.7GB at GPU2):
 
 <p align='center'>
     <img src='figs/gpu.png'/>
