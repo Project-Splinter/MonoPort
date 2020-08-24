@@ -186,7 +186,7 @@ reconEngine = Seg3dLossless(
     b_max=b_max.unsqueeze(0).numpy(),
     resolutions=resolutions,
     balance_value=0.5,
-    use_cuda_impl=True,
+    use_cuda_impl=False,
     faster=True).to(cuda_recon)
 
 
