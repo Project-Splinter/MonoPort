@@ -11,6 +11,7 @@ Our volumetric capture system captures a completely clothed human body (includin
 
 ## Requirements
 - Python 3.7
+- PyOpenGL 3.1.5 (need X server in Ubuntu)
 - [PyTorch](https://pytorch.org/) tested on 1.4.0
 - [ImplicitSegCUDA](https://github.com/Project-Splinter/ImplicitSegCUDA)
 - [human_inst_seg](https://github.com/Project-Splinter/human_inst_seg)
