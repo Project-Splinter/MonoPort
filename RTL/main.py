@@ -271,7 +271,7 @@ def visulization(render_norm, render_tex=None):
             reference[:, :, 1] == 255),
         reference[:, :, 2] == 255,
     ).reshape(render_size, render_size, 1)
-    mask = ~bg
+    mask = np.float32(~bg)
 
     return render_norm, render_tex, mask
 
@@ -462,11 +462,11 @@ loader = DataLoader(
 def main_loop():
     global DESKTOP_MODE, SERVER_MODE, VIEW_MODE
 
-    window_server = np.ones((256, 256, 3), dtype=np.uint8) * 255
+    window_server = np.ones((512, 512, 3), dtype=np.uint8) * 255
     window_desktop = np.ones((512, 1024, 3), dtype=np.uint8) * 255
 
-    create_opengl_context(256, 256)
-    renderer = AlbedoRender(width=256, height=256, multi_sample_rate=1)
+    create_opengl_context(512, 512)
+    renderer = AlbedoRender(width=512, height=512, multi_sample_rate=1)
     renderer.set_attrib(0, scene.vert_data)
     renderer.set_attrib(1, scene.uv_data)
     renderer.set_texture('TargetTexture', scene.texture_image)
@@ -476,7 +476,7 @@ def main_loop():
         renderer.draw(uniform_dict)
         color = (renderer.get_color() * 255).astype(np.uint8)
         background = cv2.cvtColor(color, cv2.COLOR_RGB2BGR)
-        background = cv2.resize(background, (256, 256))
+        background = cv2.resize(background, (512, 512))
         return background
 
     for data_dict in tqdm.tqdm(loader):
@@ -528,6 +528,14 @@ def main_loop():
             cv2.imshow('window_desktop', window_desktop[:, :, ::-1])
         
         if args.use_server:
+            if render_norm is not None:
+                render_norm = cv2.resize(render_norm, (window_server.shape[1], window_server.shape[0]))
+            if render_tex is not None:
+                render_tex = cv2.resize(render_tex, (window_server.shape[1], window_server.shape[0]))
+            if mask is not None:
+                mask = cv2.resize(mask, (window_server.shape[1], window_server.shape[0]))
+                mask = mask[:, :, np.newaxis]
+
             if SERVER_MODE == 'NORM':
                 background = render(extrinsic, intrinsic)
                 if mask is None:
@@ -583,6 +591,13 @@ def main_loop():
         elif key == ord('n'):
             VIEW_MODE = 'LOAD'
         
+        elif key == ord('g'):
+            print("change bg")
+            floor_type = np.random.choice(scene.floors)
+            vert_data, uv_data, texture_image = scene.floors_data[floor_type]
+            renderer.set_attrib(0, vert_data)
+            renderer.set_attrib(1, uv_data)
+            renderer.set_texture('TargetTexture', texture_image)
         
 
 if __name__ == '__main__':

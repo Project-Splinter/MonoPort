@@ -7,7 +7,7 @@
 
 .content {
     width: 880px;
-    padding: 25px 50px;
+    padding: 5px 100px 30px;
     margin: 20px auto;
     background-color: #fff;
     box-shadow: 0px 0px 10px #999;
@@ -36,6 +36,12 @@
     width: 512px;
   }
 
+  #qrcode {
+    position: absolute;
+    left: 740px;
+    height: 200px;
+    width: 200px;
+  }
 
   </style>
 
@@ -43,10 +49,10 @@
 
 </head>
 
-
 <body>
   <div class="content">
   <div class="container">
+    <img id='qrcode' src="https://drive.google.com/uc?export=view&id=11XYzkEcb1mFOkM2lDVsymoQtuFOshunK">
     <h1 >MonoPort VR Demo</h1>
     <h3>SIGGRAPH Real-Time Live 2020</h3>
     <img src="{{ url_for('video_feed') }}">
