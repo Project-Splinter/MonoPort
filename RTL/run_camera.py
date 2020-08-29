@@ -35,6 +35,7 @@ args = parser.parse_args()
 device = 'cuda:0'
 scaled_boxes = [torch.Tensor([[ 50.0,  0.0, 450.0, 500.0]]).to(device)]
 
+
 ########################################
 ## initialize data streamer
 ########################################
@@ -52,6 +53,7 @@ elif args.image_folder is not None:
     images += sorted(glob.glob(args.image_folder+'/*.png'))
     data_stream = streamer.ImageListStreamer(
         images * (10 if args.loop else 1))
+
 
 ########################################
 ## human segmentation model
