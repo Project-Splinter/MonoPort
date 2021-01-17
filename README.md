@@ -80,12 +80,14 @@ MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20
 ## Citation
 
 ```
-@article{li2020monocular,
-    title={Monocular Real-Time Volumetric Performance Capture},
-    author={Li, Ruilong and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Olszewski, Kyle and Li, Hao},
-    journal={arXiv preprint arXiv:2007.13988},
-    year={2020}
-  }
+@inproceedings{li2020monocular,
+  title={Monocular Real-Time Volumetric Performance Capture},
+  author={Li, Ruilong and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Olszewski, Kyle and Li, Hao},
+  booktitle={European Conference on Computer Vision},
+  pages={49--67},
+  year={2020},
+  organization={Springer}
+}
   
 @inproceedings{10.1145/3407662.3407756,
     author = {Li, Ruilong and Olszewski, Kyle and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Li, Hao},
