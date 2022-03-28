@@ -92,7 +92,7 @@ MonoPort is based on [Monocular Real-Time Volumetric Performance Capture(ECCV'20
 @incollection{li2020monoportRTL,
   title={Volumetric human teleportation},
   author={Li, Ruilong and Olszewski, Kyle and Xiu, Yuliang and Saito, Shunsuke and Huang, Zeng and Li, Hao},
-  booktitle={ACM SIGGRAPH 2020 Real-Time Live!},
+  booktitle={ACM SIGGRAPH 2020 Real-Time Live},
   pages={1--1},
   year={2020}
 }
